@@ -28,6 +28,7 @@ config_local.py
 *.key
 *.secret
 .env  # Archivo con credenciales de MT5 (NUNCA subir a Git)
+ENV_VPS_COPIA.txt  # Archivo con credenciales para copiar al VPS
 
 # Datos históricos (opcional - descomenta si no quieres versionar los datos)
 # data/*.csv
