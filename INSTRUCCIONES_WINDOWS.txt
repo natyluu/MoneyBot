@@ -1,0 +1,46 @@
+
+═══════════════════════════════════════════════════════════════
+  INSTRUCCIONES PARA EJECUTAR EN WINDOWS
+═══════════════════════════════════════════════════════════════
+
+PASO 1: INSTALAR PYTHON EN WINDOWS
+───────────────────────────────────────────────────────────────
+1. Descarga Python desde: https://www.python.org/downloads/
+2. Durante instalación, marca "Add Python to PATH"
+3. Verifica: Abre PowerShell y ejecuta:
+   python --version
+   pip --version
+
+PASO 2: INSTALAR DEPENDENCIAS
+───────────────────────────────────────────────────────────────
+Abre PowerShell en la carpeta del proyecto y ejecuta:
+
+   pip install MetaTrader5 python-dotenv pandas numpy
+
+PASO 3: CONFIGURAR CREDENCIALES
+───────────────────────────────────────────────────────────────
+Ejecuta:
+
+   python setup_mt5.py
+
+Ingresa tus credenciales de MT5 cuando te las pida.
+
+PASO 4: PROBAR CONEXIÓN
+───────────────────────────────────────────────────────────────
+1. Abre MetaTrader 5
+2. Conéctate a tu cuenta Zeven
+3. Ejecuta:
+
+   python test_mt5_connection.py
+
+Si ves "✅ PRUEBA COMPLETADA EXITOSAMENTE", todo está bien.
+
+PASO 5: EJECUTAR EL BOT
+───────────────────────────────────────────────────────────────
+Ejecuta:
+
+   python live/mt5_trading.py
+
+El bot se conectará automáticamente y empezará a operar.
+
+═══════════════════════════════════════════════════════════════

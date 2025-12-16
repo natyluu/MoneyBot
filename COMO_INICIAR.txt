@@ -1,0 +1,47 @@
+========================================
+CÓMO INICIAR EL BOT - 3 MÉTODOS SIMPLES
+========================================
+
+MÉTODO 1: Hacer doble clic en el archivo .bat (MÁS FÁCIL)
+----------------------------------------------------------
+1. Abre el Explorador de Windows
+2. Ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+3. Haz doble clic en: INICIAR_BOT.bat
+
+¡Eso es todo! El bot iniciará automáticamente.
+
+========================================
+
+MÉTODO 2: Desde PowerShell (con script)
+----------------------------------------
+1. Abre PowerShell
+2. Ejecuta:
+
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   .\INICIAR_BOT.ps1
+
+========================================
+
+MÉTODO 3: Desde PowerShell (comando directo)
+---------------------------------------------
+1. Abre PowerShell
+2. Ejecuta estos comandos UNO POR UNO:
+
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   python -u live\mt5_trading.py
+
+El -u hace que veas los mensajes en tiempo real.
+
+========================================
+
+IMPORTANTE:
+- Asegúrate de tener MetaTrader 5 abierto y conectado
+- El bot mostrará mensajes cada 30 segundos
+- Hará análisis completos cada 3 minutos
+- Presiona Ctrl+C para detenerlo
+
+========================================
+
+
+
+

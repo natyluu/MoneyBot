@@ -1,0 +1,86 @@
+=====================================================================
+SOLUCIÓN RÁPIDA: COPIAR ARCHIVOS DESDE MAC
+=====================================================================
+
+PROBLEMA CONFIRMADO: Los archivos nuevos NO se están sincronizando
+
+SOLUCIÓN: Copiar manualmente desde la carpeta compartida
+
+=====================================================================
+PASO 1: Acceder a la carpeta compartida de Mac
+=====================================================================
+
+En el Explorador de Windows:
+
+1. En la barra de direcciones, escribe:
+   \\Mac\Home\bot de trader
+
+2. Presiona Enter
+
+3. Si no funciona, busca en el panel izquierdo:
+   - "Mac" 
+   - "Parallels Shared Folders"
+   - "Home"
+
+=====================================================================
+PASO 2: Copiar archivos nuevos
+=====================================================================
+
+Desde: \\Mac\Home\bot de trader
+Hacia: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+
+ARCHIVOS A COPIAR:
+
+1. INICIAR_BOT_FACIL.bat
+2. DIAGNOSTICO_COMPLETO.bat
+3. VERIFICAR_ARCHIVOS_WINDOWS.bat
+4. COPIAR_DESDE_MAC.bat
+
+=====================================================================
+PASO 3: Verificar archivos críticos del bot
+=====================================================================
+
+En el Explorador de Windows, verifica que existan:
+
+✅ C:\BOT\trading-bot-windows-20251210 on 'Mac'\live\mt5_trading.py
+✅ C:\BOT\trading-bot-windows-20251210 on 'Mac'\config.py
+✅ C:\BOT\trading-bot-windows-20251210 on 'Mac'\strategy\ict_hybrid_strategy.py
+✅ C:\BOT\trading-bot-windows-20251210 on 'Mac'\.env
+
+=====================================================================
+PASO 4: Si los archivos críticos NO existen
+=====================================================================
+
+Copia también desde \\Mac\Home\bot de trader:
+
+- Carpeta completa: live
+- Carpeta completa: strategy
+- Archivo: config.py
+- Archivo: .env (puede estar oculto, activa "Mostrar archivos ocultos")
+
+=====================================================================
+MÉTODO ALTERNATIVO: Usar CMD
+=====================================================================
+
+Abre CMD en Windows y ejecuta:
+
+cd C:\
+xcopy "\\Mac\Home\bot de trader\*.bat" "C:\BOT\trading-bot-windows-20251210 on 'Mac'\" /Y
+xcopy "\\Mac\Home\bot de trader\live" "C:\BOT\trading-bot-windows-20251210 on 'Mac'\live\" /E /I /Y
+xcopy "\\Mac\Home\bot de trader\strategy" "C:\BOT\trading-bot-windows-20251210 on 'Mac'\strategy\" /E /I /Y
+copy "\\Mac\Home\bot de trader\config.py" "C:\BOT\trading-bot-windows-20251210 on 'Mac'\" /Y
+copy "\\Mac\Home\bot de trader\.env" "C:\BOT\trading-bot-windows-20251210 on 'Mac'\" /Y
+
+=====================================================================
+DESPUÉS DE COPIAR
+=====================================================================
+
+1. Verifica que los archivos estén en Windows
+2. Ejecuta: DIAGNOSTICO_COMPLETO.bat
+3. Si todo está OK, ejecuta: python -u live\mt5_trading.py
+
+=====================================================================
+
+
+
+

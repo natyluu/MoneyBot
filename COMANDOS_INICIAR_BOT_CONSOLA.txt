@@ -1,0 +1,83 @@
+=====================================================================
+COMANDOS PARA INICIAR EL BOT DESDE LA CONSOLA (POWER SHELL O CMD)
+=====================================================================
+
+PASO 1: Abrir PowerShell o CMD
+-------------------------------
+- Presiona Win + X
+- Selecciona "Windows PowerShell" o "Terminal"
+- O presiona Win + R, escribe "cmd" y presiona Enter
+
+PASO 2: Cambiar al Directorio del Proyecto
+-------------------------------------------
+Copia y pega este comando (presiona Enter después):
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+Espera a que cambie el prompt. Deberías ver:
+PS C:\BOT\trading-bot-windows-20251210 on 'Mac'>
+
+PASO 3: Verificar que Estás en el Lugar Correcto
+--------------------------------------------------
+Ejecuta:
+
+dir live\mt5_trading.py
+
+Deberías ver el archivo listado. Si no aparece, avísame.
+
+PASO 4: Abrir MetaTrader 5 (IMPORTANTE)
+----------------------------------------
+ANTES de iniciar el bot:
+1. Abre MetaTrader 5
+2. Conéctate a tu cuenta (94342)
+3. Verifica que XAUUSD.vip esté visible en Market Watch
+
+PASO 5: Iniciar el Bot
+-----------------------
+Ejecuta este comando:
+
+python -u live\mt5_trading.py
+
+O si usas Python 3.12 específicamente:
+
+py -3.12 -u live\mt5_trading.py
+
+=====================================================================
+COMANDOS COMPLETOS (COPIA Y PEGA TODO)
+=====================================================================
+
+Para PowerShell o CMD, ejecuta estos comandos UNO POR UNO:
+
+1. cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+2. python -u live\mt5_trading.py
+
+=====================================================================
+SI HAY ERRORES
+=====================================================================
+
+Error: "can't open file"
+- Verifica que estás en el directorio correcto
+- Ejecuta: dir live\mt5_trading.py
+
+Error: "No module named 'config'"
+- Verifica que config.py existe: dir config.py
+
+Error: "No module named 'MetaTrader5'"
+- Instala: pip install MetaTrader5
+
+Error: "No se pudo inicializar MT5"
+- Abre MetaTrader 5 primero
+- Conéctate a tu cuenta
+
+=====================================================================
+PARA DETENER EL BOT
+=====================================================================
+
+Presiona: Ctrl + C
+
+=====================================================================
+
+
+
+

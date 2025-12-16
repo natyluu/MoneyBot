@@ -1,0 +1,11 @@
+Ejecuta estos comandos en PowerShell para ver el error completo:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+python live\mt5_trading.py 2>&1 | Out-File error.txt
+type error.txt
+
+Esto guardará el error en error.txt y lo mostrará.
+
+
+
+

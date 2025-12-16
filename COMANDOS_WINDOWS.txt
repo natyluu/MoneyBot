@@ -1,0 +1,71 @@
+═══════════════════════════════════════════════════════════════
+  COMANDOS PARA EJECUTAR EN WINDOWS (PowerShell)
+═══════════════════════════════════════════════════════════════
+
+COPIA Y PEGA ESTOS COMANDOS UNO POR UNO EN POWERSHELL DE WINDOWS
+═══════════════════════════════════════════════════════════════
+
+1. VERIFICAR PYTHON
+───────────────────────────────────────────────────────────────
+python --version
+pip --version
+
+Si no funciona, instala Python desde: https://www.python.org/downloads/
+⚠️ IMPORTANTE: Marca "Add Python to PATH" durante la instalación
+
+═══════════════════════════════════════════════════════════════
+
+2. NAVEGAR AL PROYECTO
+───────────────────────────────────────────────────────────────
+cd C:\trading-bot
+
+Si el proyecto no está ahí, cópialo primero (ver instrucciones abajo)
+
+═══════════════════════════════════════════════════════════════
+
+3. INSTALAR DEPENDENCIAS
+───────────────────────────────────────────────────────────────
+pip install MetaTrader5 python-dotenv pandas numpy
+
+═══════════════════════════════════════════════════════════════
+
+4. VERIFICAR INSTALACIÓN
+───────────────────────────────────────────────────────────────
+python -c "import MetaTrader5; print('✅ MetaTrader5 OK')"
+
+═══════════════════════════════════════════════════════════════
+
+5. CONFIGURAR CREDENCIALES
+───────────────────────────────────────────────────────────────
+python setup_mt5.py
+
+Ingresa:
+- Número de cuenta MT5
+- Contraseña
+- Servidor (ej: ZevenGlobal-Demo)
+- Símbolo (ej: XAUUSD)
+
+═══════════════════════════════════════════════════════════════
+
+6. PROBAR CONEXIÓN (Abre MT5 primero)
+───────────────────────────────────────────────────────────────
+python test_mt5_connection.py
+
+Deberías ver: "✅ PRUEBA COMPLETADA EXITOSAMENTE"
+
+═══════════════════════════════════════════════════════════════
+
+7. EJECUTAR BOT (Abre MT5 primero)
+───────────────────────────────────────────────────────────────
+python live/mt5_trading.py
+
+Para detener: Presiona Ctrl+C
+
+═══════════════════════════════════════════════════════════════
+
+
+
+
+
+
+

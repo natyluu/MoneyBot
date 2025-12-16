@@ -1,0 +1,80 @@
+=====================================================================
+SOLUCIÓN DEFINITIVA - PASO A PASO
+=====================================================================
+
+PROBLEMA: El bot no inicia o no muestra mensajes
+
+SOLUCIÓN: Sigue estos pasos EXACTAMENTE
+
+=====================================================================
+PASO 1: VERIFICAR QUE EL ARCHIVO EXISTE
+=====================================================================
+
+1. Abre el Explorador de Windows
+2. Ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+3. Verifica que existe la carpeta "live"
+4. Dentro de "live", verifica que existe "mt5_trading.py"
+
+Si NO existe, el proyecto no está completo en Windows.
+
+=====================================================================
+PASO 2: ABRIR CMD
+=====================================================================
+
+1. Presiona Win + R
+2. Escribe: cmd
+3. Presiona Enter
+
+=====================================================================
+PASO 3: EJECUTAR COMANDOS (UNO POR UNO)
+=====================================================================
+
+Comando 1:
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+Presiona Enter y ESPERA a que cambie el prompt.
+
+Comando 2 (verificar):
+dir live\mt5_trading.py
+
+Presiona Enter. Deberías ver el archivo listado.
+
+Comando 3 (iniciar):
+python -u live\mt5_trading.py
+
+Presiona Enter.
+
+=====================================================================
+PASO 4: VERIFICAR ERRORES
+=====================================================================
+
+Si hay un error, comparte el mensaje COMPLETO.
+
+Errores comunes:
+- "can't open file" = Estás en el directorio incorrecto
+- "No module named" = Falta instalar un módulo
+- "No se pudo inicializar MT5" = MT5 no está abierto
+
+=====================================================================
+ALTERNATIVA: USAR EL SCRIPT .BAT
+=====================================================================
+
+1. Abre el Explorador de Windows
+2. Ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+3. Busca: INICIAR_BOT_FACIL.bat
+4. Haz doble clic en INICIAR_BOT_FACIL.bat
+
+=====================================================================
+SI NADA FUNCIONA
+=====================================================================
+
+Comparte:
+1. ¿Qué error aparece exactamente?
+2. ¿En qué directorio estás? (el prompt lo muestra)
+3. ¿Existe el archivo live\mt5_trading.py? (verifica en Explorador)
+
+=====================================================================
+
+
+
+

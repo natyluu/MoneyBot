@@ -1,0 +1,21 @@
+========================================
+SOLUCIÓN SIMPLE - COPIA Y PEGA
+========================================
+
+PASO 1: Abre PowerShell en Windows
+
+PASO 2: Ejecuta estos comandos UNO POR UNO:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+python -c "exec('''import sys, os, importlib.util\nos.chdir(r\"C:\\\\BOT\\\\trading-bot-windows-20251210 on \'Mac\'\")\nsys.path.insert(0, \".\")\nspec = importlib.util.spec_from_file_location(\"config\", \"config.py\")\nconfig = importlib.util.module_from_spec(spec)\nsys.modules[\"config\"] = config\nspec.loader.exec_module(config)\nspec = importlib.util.spec_from_file_location(\"mt5_trading\", \"live/mt5_trading.py\")\nbot = importlib.util.module_from_spec(spec)\nsys.modules[\"mt5_trading\"] = bot\nspec.loader.exec_module(bot)\n''')"
+
+========================================
+SI ESO NO FUNCIONA, USA ESTO:
+========================================
+
+python -c "import sys; sys.path.insert(0, r\"C:\BOT\trading-bot-windows-20251210 on 'Mac'\"); import os; os.chdir(r\"C:\BOT\trading-bot-windows-20251210 on 'Mac'\"); exec(open('live/mt5_trading.py', encoding='utf-8').read())"
+
+
+
+

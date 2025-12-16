@@ -1,0 +1,51 @@
+=====================================================================
+COMANDOS DIRECTOS PARA POWERSHELL - SIN ARCHIVOS ADICIONALES
+=====================================================================
+
+MÉTODO 1: COMANDOS DIRECTOS CON FLUSH FORZADO
+=====================================================================
+
+Ejecuta estos comandos UNO POR UNO en PowerShell:
+
+1. Cambiar al directorio:
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+2. Configurar variables y ejecutar:
+$env:PYTHONUNBUFFERED = "1"
+python -u live\mt5_trading.py | ForEach-Object { Write-Host $_; [Console]::Out.Flush() }
+
+=====================================================================
+MÉTODO 2: VER EN ARCHIVO EN TIEMPO REAL
+=====================================================================
+
+VENTANA 1 (Ejecutar bot):
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+python -u live\mt5_trading.py > bot_output.txt 2>&1
+
+VENTANA 2 (Ver en tiempo real):
+Get-Content bot_output.txt -Wait
+
+=====================================================================
+MÉTODO 3: USAR TEE-OBJECT
+=====================================================================
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+$env:PYTHONUNBUFFERED = "1"
+python -u live\mt5_trading.py 2>&1 | Tee-Object -FilePath "bot_output.txt"
+
+Esto muestra en pantalla Y guarda en archivo.
+
+=====================================================================
+MÉTODO 4: COMANDO ÚNICO (MÁS SIMPLE)
+=====================================================================
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+$env:PYTHONUNBUFFERED = "1"; python -u live\mt5_trading.py
+
+Aunque puede tener buffering, el bot funciona. Presiona Ctrl+C para ver mensajes.
+
+=====================================================================
+
+
+
+

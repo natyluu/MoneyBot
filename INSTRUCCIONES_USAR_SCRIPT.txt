@@ -1,0 +1,81 @@
+=====================================================================
+INSTRUCCIONES PARA USAR EL SCRIPT INICIAR_BOT.bat
+=====================================================================
+
+EL SCRIPT YA ESTÁ CREADO: INICIAR_BOT.bat
+
+=====================================================================
+CÓMO USARLO
+=====================================================================
+
+MÉTODO 1: DOBLE CLIC (MÁS FÁCIL)
+--------------------------------
+1. Abre el Explorador de Windows
+2. Ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+3. Busca el archivo: INICIAR_BOT.bat
+4. Haz doble clic en INICIAR_BOT.bat
+5. El bot se iniciará automáticamente
+
+=====================================================================
+MÉTODO 2: DESDE CMD
+-------------------
+1. Abre CMD (Win + R → cmd)
+2. Ejecuta:
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   INICIAR_BOT.bat
+
+=====================================================================
+MÉTODO 3: DESDE POWERSHELL
+--------------------------
+1. Abre PowerShell
+2. Ejecuta:
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   .\INICIAR_BOT.bat
+
+=====================================================================
+ANTES DE INICIAR
+=====================================================================
+
+Asegúrate de que:
+- MetaTrader 5 está ABIERTO
+- Estás CONECTADO a tu cuenta (94342)
+- XAUUSD.vip está visible en Market Watch
+
+=====================================================================
+QUÉ DEBERÍAS VER
+=====================================================================
+
+Cuando el bot inicie, verás:
+
+======================================================================
+INICIANDO BOT DE TRADING AUTOMATICO
+======================================================================
+
+🔧 Bot iniciando...
+======================================================================
+🚀 INICIANDO BOT DE TRADING AUTOMÁTICO
+======================================================================
+🔌 Inicializando conexión con MetaTrader 5...
+✓ MT5 inicializado
+✓ Conectado a cuenta 94342...
+
+=====================================================================
+PARA DETENER EL BOT
+=====================================================================
+
+Presiona: Ctrl + C
+
+=====================================================================
+SI HAY PROBLEMAS
+=====================================================================
+
+1. Verifica que estás en el directorio correcto
+2. Verifica que MT5 está abierto
+3. Verifica que .env existe con credenciales correctas
+4. Ejecuta: python -u live\mt5_trading.py directamente
+
+=====================================================================
+
+
+
+

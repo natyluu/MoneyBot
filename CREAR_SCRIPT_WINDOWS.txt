@@ -1,0 +1,79 @@
+=====================================================================
+CREAR SCRIPT SIMPLE EN WINDOWS - INSTRUCCIONES
+=====================================================================
+
+PASO 1: Abrir Notepad
+---------------------
+1. Presiona Win + R
+2. Escribe: notepad
+3. Presiona Enter
+
+PASO 2: Copiar y Pegar este Código
+------------------------------------
+Copia TODO el código de abajo y pégalo en Notepad:
+
+================================================================
+[COPIAR DESDE AQUÍ]
+
+@echo off
+REM Script simple para iniciar el bot de trading
+chcp 65001 >nul 2>&1
+
+cd /d "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+set PYTHONUNBUFFERED=1
+set PYTHONIOENCODING=utf-8
+
+echo ======================================================================
+echo INICIANDO BOT DE TRADING
+echo ======================================================================
+echo.
+echo IMPORTANTE: MetaTrader 5 debe estar ABIERTO
+echo Presiona Ctrl+C para detener el bot
+echo.
+echo ======================================================================
+echo.
+
+python -u live\mt5_trading.py
+
+echo.
+echo ======================================================================
+echo Bot detenido
+echo ======================================================================
+pause
+
+[HASTA AQUÍ]
+================================================================
+
+PASO 3: Guardar el Archivo
+---------------------------
+1. En Notepad: Archivo → Guardar como...
+2. En "Nombre del archivo" escribe: INICIAR_BOT.bat
+3. IMPORTANTE: En "Tipo" selecciona: "Todos los archivos (*.*)"
+4. Ubicación: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+5. Clic en "Guardar"
+
+PASO 4: Usar el Script
+-----------------------
+1. Ve al Explorador de Windows
+2. Ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+3. Haz doble clic en: INICIAR_BOT.bat
+4. El bot se iniciará automáticamente
+
+=====================================================================
+ALTERNATIVA: USAR CMD DIRECTAMENTE
+=====================================================================
+
+Si prefieres no crear archivos:
+
+1. Presiona Win + R
+2. Escribe: cmd
+3. Presiona Enter
+4. Ejecuta:
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   python -u live\mt5_trading.py
+
+=====================================================================
+
+
+
+

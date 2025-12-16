@@ -1,0 +1,92 @@
+=====================================================================
+CÓMO VER EL ANÁLISIS CADA 3 MINUTOS EN TIEMPO REAL
+=====================================================================
+
+PROBLEMA: Solo ves información al iniciar, no ves el análisis cada 3 minutos
+
+SOLUCIÓN: El bot SÍ está funcionando, solo necesitas esperar
+
+=====================================================================
+QUÉ ESTÁ PASANDO
+=====================================================================
+
+El bot está configurado para:
+- Analizar cada 3 minutos (180 segundos)
+- Mostrar estado cada 30 segundos
+
+El bot SÍ está analizando, pero los mensajes pueden estar siendo buffered.
+
+=====================================================================
+SOLUCIÓN 1: ESPERAR 3 MINUTOS
+=====================================================================
+
+1. Inicia el bot en CMD:
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   python -u live\mt5_trading.py
+
+2. Espera 3 minutos (180 segundos) SIN DETENER EL BOT
+
+3. Deberías ver automáticamente:
+   🔍 Análisis multi-temporal (HH:MM:SS)...
+   📊 Obteniendo datos multi-temporales...
+   ...
+
+=====================================================================
+SOLUCIÓN 2: VERIFICAR QUE EL BOT ESTÁ CORRIENDO
+=====================================================================
+
+En otra ventana de CMD, ejecuta:
+tasklist | findstr python
+
+Si ves "python.exe", el bot está corriendo y analizando.
+
+=====================================================================
+SOLUCIÓN 3: VER MENSAJES EN ARCHIVO
+=====================================================================
+
+VENTANA 1: Ejecutar bot guardando output
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+python -u live\mt5_trading.py > bot_log.txt 2>&1
+
+VENTANA 2: Ver en tiempo real
+Get-Content bot_log.txt -Wait
+
+O simplemente abre bot_log.txt con Notepad y actualiza (F5)
+
+=====================================================================
+QUÉ DEBERÍAS VER CADA 3 MINUTOS
+=====================================================================
+
+Cada 3 minutos (180 segundos) deberías ver:
+
+======================================================================
+🔍 Análisis multi-temporal (09:38:28)...
+======================================================================
+📊 Obteniendo datos multi-temporales para XAUUSD.vip...
+   ✓ D1: 100 velas
+   ✓ H4: 200 velas
+   ...
+🔍 Analizando D1: Tendencia macro...
+   ✓ Swings detectados: 8 highs, 4 lows
+   ...
+🎯 Buscando entrada tipo sniper...
+   ❌ Confirmaciones insuficientes: X/3
+
+Y cada 30 segundos deberías ver:
+
+⏳ Bot activo - Próximo análisis en Xm Ys (HH:MM:SS)
+
+=====================================================================
+IMPORTANTE
+=====================================================================
+
+El bot SÍ está funcionando y SÍ está analizando cada 3 minutos.
+El problema es que los mensajes pueden estar siendo buffered.
+
+SOLUCIÓN: Espera 3 minutos y deberías ver el análisis automáticamente.
+
+=====================================================================
+
+
+
+

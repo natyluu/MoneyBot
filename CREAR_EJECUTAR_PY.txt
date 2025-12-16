@@ -1,0 +1,44 @@
+Copia y pega este comando COMPLETO en PowerShell:
+
+$content = @'
+import sys
+import os
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+print(f"✓ Directorio de trabajo: {script_dir}")
+print(f"✓ Path configurado\n")
+config_file = os.path.join(script_dir, "config.py")
+bot_file = os.path.join(script_dir, "live", "mt5_trading.py")
+if not os.path.exists(config_file):
+    print(f"❌ ERROR: No se encontró {config_file}")
+    sys.exit(1)
+if not os.path.exists(bot_file):
+    print(f"❌ ERROR: No se encontró {bot_file}")
+    sys.exit(1)
+print(f"✓ Archivos encontrados\n")
+import importlib.util
+spec = importlib.util.spec_from_file_location("config", config_file)
+config = importlib.util.module_from_spec(spec)
+sys.modules["config"] = config
+spec.loader.exec_module(config)
+print("✓ Config cargado\n")
+print("=" * 70)
+print("Iniciando bot...")
+print("=" * 70)
+print()
+spec = importlib.util.spec_from_file_location("mt5_trading", bot_file)
+bot_module = importlib.util.module_from_spec(spec)
+sys.modules["mt5_trading"] = bot_module
+spec.loader.exec_module(bot_module)
+'@
+[System.IO.File]::WriteAllText("ejecutar.py", $content, [System.Text.Encoding]::UTF8)
+
+
+
+

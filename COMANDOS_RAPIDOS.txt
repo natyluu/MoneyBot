@@ -1,0 +1,29 @@
+========================================
+COMANDOS RÁPIDOS PARA INICIAR EL BOT
+========================================
+
+1. Ir al directorio del proyecto:
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+2. Verificar que estás en el lugar correcto:
+   dir live\mt5_trading.py
+
+3. Iniciar el bot:
+   python live\mt5_trading.py
+
+   O si usas Python 3.12:
+   py -3.12 live\mt5_trading.py
+
+4. (Opcional) Probar conexión primero:
+   python test_mt5_connection.py
+
+========================================
+ORDEN COMPLETA (copia y pega todo):
+========================================
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+python live\mt5_trading.py
+
+
+
+

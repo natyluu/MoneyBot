@@ -1,0 +1,38 @@
+========================================
+PASOS PARA INICIAR EL BOT
+========================================
+
+1. Abre PowerShell en Windows
+
+2. Ejecuta este comando:
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+3. Verifica que estás en el lugar correcto:
+   dir config.py
+   (Deberías ver el archivo listado)
+
+4. Abre MetaTrader 5 y conéctate a tu cuenta
+
+5. Ejecuta el bot:
+   python live\mt5_trading.py
+
+6. ¡Listo! El bot debería iniciar
+
+========================================
+COMANDOS COMPLETOS (copia y pega):
+========================================
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+python live\mt5_trading.py
+
+========================================
+PARA DETENER EL BOT:
+========================================
+
+Presiona Ctrl + C
+
+========================================
+
+
+
+

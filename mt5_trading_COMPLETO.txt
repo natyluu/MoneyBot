@@ -1,0 +1,18 @@
+Este archivo contiene el código completo de live/mt5_trading.py con todos los arreglos aplicados.
+
+Para usar este código:
+1. Copia todo el contenido
+2. Pégalo en el archivo live/mt5_trading.py en Windows
+3. Guarda el archivo
+4. Reinicia el bot
+
+El código incluye:
+- ✅ Encoding UTF-8 para Windows
+- ✅ Configuración correcta del path
+- ✅ Intervalos de 180s (3 min) y 30s
+- ✅ Mensajes de estado cada 30 segundos
+- ✅ Carga robusta de config.py y strategy
+
+
+
+

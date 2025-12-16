@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════════════════
+  RESUMEN: CONFIGURAR PARALLELS PARA TRADING EN VIVO
+═══════════════════════════════════════════════════════════════
+
+ESTADO ACTUAL:
+  ✅ Proyecto completo y listo
+  ✅ Paquete para Windows creado
+  ❌ Parallels Desktop: No instalado aún
+
+ARCHIVOS CREADOS:
+  ✅ GUIA_PARALLELS_COMPLETA.md - Guía detallada paso a paso
+  ✅ PASOS_PARALLELS.md - Resumen ejecutivo
+  ✅ INICIO_RAPIDO_PARALLELS.md - Inicio rápido
+  ✅ trading-bot-windows-20251210/ - Paquete listo para Windows
+
+PRÓXIMOS PASOS:
+
+1. INSTALAR PARALLELS DESKTOP
+   - Mac App Store: Busca "Parallels Desktop"
+   - O descarga: https://www.parallels.com/products/desktop/
+   - Prueba gratuita: 14 días
+
+2. CREAR WINDOWS EN PARALLELS
+   - Abre Parallels → "Instalar Windows"
+   - Parallels descarga Windows automáticamente
+   - Espera 30-60 minutos
+
+3. EN WINDOWS:
+   - Instala Python (marca "Add to PATH")
+   - Copia proyecto desde Mac (carpeta compartida)
+   - Ejecuta: pip install MetaTrader5 python-dotenv pandas numpy
+   - Ejecuta: python setup_mt5.py
+   - Ejecuta: python test_mt5_connection.py
+   - Ejecuta: python live/mt5_trading.py
+
+COMANDOS RÁPIDOS (En Windows):
+  cd C:\trading-bot
+  pip install MetaTrader5 python-dotenv pandas numpy
+  python setup_mt5.py
+  python test_mt5_connection.py
+  python live/mt5_trading.py
+
+═══════════════════════════════════════════════════════════════

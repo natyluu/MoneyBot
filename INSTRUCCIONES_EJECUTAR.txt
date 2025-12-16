@@ -1,0 +1,37 @@
+========================================
+CÓMO EJECUTAR EL BOT - SOLUCIÓN SIMPLE
+========================================
+
+OPCIÓN 1: Usar el script ejecutar_bot.py (RECOMENDADO)
+
+1. Abre PowerShell
+2. Ejecuta estos comandos UNO POR UNO:
+
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   python ejecutar_bot.py
+
+Este script busca automáticamente el directorio del proyecto
+y ejecuta el bot correctamente.
+
+========================================
+
+OPCIÓN 2: Ejecutar directamente
+
+1. Abre PowerShell
+2. Ejecuta estos comandos UNO POR UNO:
+
+   cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+   python live\mt5_trading.py
+
+========================================
+
+IMPORTANTE:
+- Ejecuta UN comando a la vez
+- Presiona Enter después de cada comando
+- Espera a que termine antes de ejecutar el siguiente
+
+========================================
+
+
+
+

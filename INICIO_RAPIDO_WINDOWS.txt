@@ -1,0 +1,83 @@
+═══════════════════════════════════════════════════════════════
+  INICIO RÁPIDO - CONFIGURAR BOT EN WINDOWS
+═══════════════════════════════════════════════════════════════
+
+EJECUTA ESTOS COMANDOS EN POWERSHELL DE WINDOWS (UNO POR UNO)
+═══════════════════════════════════════════════════════════════
+
+1. VERIFICAR PYTHON
+───────────────────────────────────────────────────────────────
+python --version
+
+Si no funciona → Instala desde: https://www.python.org/downloads/
+⚠️ Marca "Add Python to PATH"
+
+═══════════════════════════════════════════════════════════════
+
+2. IR AL PROYECTO
+───────────────────────────────────────────────────────────────
+cd C:\trading-bot
+
+Si no existe → Copia el proyecto primero (ver COPIAR_PROYECTO_WINDOWS.md)
+
+═══════════════════════════════════════════════════════════════
+
+3. INSTALAR DEPENDENCIAS
+───────────────────────────────────────────────────────────────
+pip install MetaTrader5 python-dotenv pandas numpy
+
+═══════════════════════════════════════════════════════════════
+
+4. VERIFICAR
+───────────────────────────────────────────────────────────────
+python -c "import MetaTrader5; print('✅ OK')"
+
+═══════════════════════════════════════════════════════════════
+
+5. INSTALAR MT5 (MANUAL)
+───────────────────────────────────────────────────────────────
+- Abre navegador → https://www.metatrader5.com/es/download
+- Descarga e instala MT5
+- Abre MT5 y conéctate a Zeven
+
+═══════════════════════════════════════════════════════════════
+
+6. CONFIGURAR CREDENCIALES
+───────────────────────────────────────────────────────────────
+python setup_mt5.py
+
+Ingresa: cuenta, contraseña, servidor, símbolo
+
+═══════════════════════════════════════════════════════════════
+
+7. PROBAR (Abre MT5 primero)
+───────────────────────────────────────────────────────────────
+python test_mt5_connection.py
+
+Deberías ver: ✅ PRUEBA COMPLETADA EXITOSAMENTE
+
+═══════════════════════════════════════════════════════════════
+
+8. EJECUTAR BOT (Abre MT5 primero)
+───────────────────────────────────────────────────────────────
+python live/mt5_trading.py
+
+Para detener: Ctrl+C
+
+═══════════════════════════════════════════════════════════════
+
+DOCUMENTACIÓN COMPLETA:
+───────────────────────────────────────────────────────────────
+📖 INSTALAR_PYTHON_WINDOWS.md - Instalar Python
+📖 COPIAR_PROYECTO_WINDOWS.md - Copiar proyecto
+📖 CONFIGURAR_BOT_WINDOWS.md - Guía completa
+📖 CHECKLIST_WINDOWS.md - Checklist paso a paso
+
+═══════════════════════════════════════════════════════════════
+
+
+
+
+
+
+

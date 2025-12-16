@@ -1,0 +1,45 @@
+═══════════════════════════════════════════════════════════════
+  RESUMEN: CONECTAR A MT5 DESDE MAC
+═══════════════════════════════════════════════════════════════
+
+PROBLEMA:
+  MetaTrader5 Python solo funciona en Windows
+  Tu Mac es macOS (no Windows)
+
+SOLUCIONES:
+
+1. PARALLELS DESKTOP (Recomendado)
+   - Instala Windows en una máquina virtual
+   - Funciona en tu Mac
+   - Costo: ~$100/año + Windows ~$140
+
+2. VPS WINDOWS
+   - Servidor Windows en la nube
+   - Funciona 24/7
+   - Costo: ~$20-50/mes
+
+3. BOOT CAMP (Solo Mac Intel)
+   - Partición con Windows
+   - No funciona en Mac M1/M2/M3
+
+4. API REST (Si Zeven la tiene)
+   - Modificar código para usar API
+   - Funciona en macOS
+   - Gratis (solo código)
+
+ARCHIVOS CREADOS:
+  ✅ CONECTAR_MT5_MACOS.md - Guía detallada
+  ✅ INICIO_RAPIDO_MT5.md - Pasos rápidos
+  ✅ setup_mt5.py - Script de configuración
+  ✅ test_mt5_connection.py - Prueba de conexión
+  ✅ live/mt5_trading.py - Bot de trading
+
+PRÓXIMOS PASOS:
+  1. Decide qué opción usar (Parallels recomendado)
+  2. Si usas Parallels: Instala y crea VM Windows
+  3. En Windows: Instala Python y MetaTrader5
+  4. Ejecuta: python setup_mt5.py
+  5. Prueba: python test_mt5_connection.py
+  6. Ejecuta bot: python live/mt5_trading.py
+
+═══════════════════════════════════════════════════════════════

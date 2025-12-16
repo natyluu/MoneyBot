@@ -1,0 +1,93 @@
+=====================================================================
+COMO INICIAR EL BOT - INSTRUCCIONES SIMPLES
+=====================================================================
+
+METODO 1: DESDE CMD (RECOMENDADO - MUESTRA MENSAJES EN TIEMPO REAL)
+=====================================================================
+
+PASO 1: Abrir CMD
+------------------
+1. Presiona Win + R
+2. Escribe: cmd
+3. Presiona Enter
+
+PASO 2: Cambiar al directorio
+------------------------------
+Ejecuta este comando:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+Presiona Enter y espera.
+
+PASO 3: Iniciar el bot
+-----------------------
+Ejecuta este comando:
+
+python -u live\mt5_trading.py
+
+Presiona Enter.
+
+El bot iniciara y veras los mensajes en tiempo real.
+
+=====================================================================
+METODO 2: DESDE POWERSHELL
+=====================================================================
+
+PASO 1: Abrir PowerShell
+-----------------------
+1. Presiona Win + X
+2. Selecciona "Windows PowerShell"
+
+PASO 2: Cambiar al directorio
+------------------------------
+Ejecuta:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+PASO 3: Iniciar el bot
+-----------------------
+Ejecuta:
+
+python -u live\mt5_trading.py
+
+NOTA: En PowerShell los mensajes pueden no aparecer en tiempo real,
+pero el bot funciona. Presiona Ctrl+C para ver todos los mensajes.
+
+=====================================================================
+METODO 3: SCRIPT AUTOMATICO (MAS FACIL)
+=====================================================================
+
+1. Abre el Explorador de Windows
+2. Ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+3. Haz doble clic en: INICIAR_BOT_DEFINITIVO.bat
+
+El bot iniciara automaticamente.
+
+=====================================================================
+IMPORTANTE ANTES DE INICIAR
+=====================================================================
+
+- MetaTrader 5 debe estar ABIERTO
+- Debes estar CONECTADO a tu cuenta (94342)
+- XAUUSD.vip debe estar visible en Market Watch
+
+=====================================================================
+PARA DETENER EL BOT
+=====================================================================
+
+Presiona: Ctrl + C
+
+=====================================================================
+COMANDOS RAPIDOS (COPIA Y PEGA)
+=====================================================================
+
+Para CMD o PowerShell:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+python -u live\mt5_trading.py
+
+=====================================================================
+
+
+
+

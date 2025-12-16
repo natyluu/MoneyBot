@@ -1,0 +1,136 @@
+INSTRUCCIONES PARA CREAR Y EJECUTAR EL DIAGNÓSTICO EN WINDOWS
+================================================================
+
+PASO 1: Cambiar al directorio del proyecto
+-------------------------------------------
+En PowerShell, ejecuta:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+
+PASO 2: Verificar que estás en el directorio correcto
+-------------------------------------------------------
+Ejecuta:
+
+dir DIAGNOSTICO_BOT.ps1
+
+Si el archivo existe, verás el archivo listado.
+Si NO existe, continúa con el PASO 3.
+
+
+PASO 3: Crear el script de diagnóstico
+--------------------------------------
+Si el archivo no existe, créalo manualmente:
+
+1. Abre Notepad (Bloc de notas) en Windows
+2. Copia y pega el siguiente código PowerShell:
+
+================================================================
+[COPIAR DESDE AQUÍ]
+
+# Script de diagnóstico completo para el bot de trading
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host "🔍 DIAGNÓSTICO COMPLETO DEL BOT DE TRADING" -ForegroundColor Cyan
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# 1. Verificar directorio actual
+Write-Host "1️⃣ VERIFICANDO DIRECTORIO ACTUAL..." -ForegroundColor Yellow
+$currentDir = Get-Location
+Write-Host "   Directorio actual: $currentDir" -ForegroundColor Gray
+Write-Host ""
+
+# 2. Verificar archivos necesarios
+Write-Host "2️⃣ VERIFICANDO ARCHIVOS NECESARIOS..." -ForegroundColor Yellow
+$filesToCheck = @("config.py", ".env", "live\mt5_trading.py", "strategy\ict_hybrid_strategy.py")
+$allFilesExist = $true
+foreach ($filePath in $filesToCheck) {
+    $fullPath = Join-Path $currentDir $filePath
+    $exists = Test-Path $fullPath
+    if ($exists) {
+        Write-Host "   ✓ $filePath : EXISTE" -ForegroundColor Green
+    } else {
+        Write-Host "   ❌ $filePath : NO EXISTE" -ForegroundColor Red
+        $allFilesExist = $false
+    }
+}
+Write-Host ""
+
+# 3. Verificar Python
+Write-Host "3️⃣ VERIFICANDO PYTHON..." -ForegroundColor Yellow
+try {
+    $pythonVersion = python --version 2>&1
+    Write-Host "   Versión: $pythonVersion" -ForegroundColor Green
+} catch {
+    Write-Host "   ❌ Python NO está instalado" -ForegroundColor Red
+}
+Write-Host ""
+
+# 4. Verificar módulos
+Write-Host "4️⃣ VERIFICANDO MÓDULOS..." -ForegroundColor Yellow
+$modules = @("MetaTrader5", "pandas", "numpy", "dotenv")
+foreach ($module in $modules) {
+    $result = python -c "import $module; print('OK')" 2>&1
+    if ($result -match "OK") {
+        Write-Host "   ✓ $module : INSTALADO" -ForegroundColor Green
+    } else {
+        Write-Host "   ❌ $module : NO INSTALADO" -ForegroundColor Red
+    }
+}
+Write-Host ""
+
+# 5. Verificar .env
+Write-Host "5️⃣ VERIFICANDO .env..." -ForegroundColor Yellow
+$envPath = Join-Path $currentDir ".env"
+if (Test-Path $envPath) {
+    Write-Host "   ✓ .env existe" -ForegroundColor Green
+    $content = Get-Content $envPath -Encoding UTF8
+    Write-Host "   ✓ Tiene $($content.Count) líneas" -ForegroundColor Gray
+} else {
+    Write-Host "   ❌ .env NO EXISTE" -ForegroundColor Red
+}
+Write-Host ""
+
+# 6. Verificar MT5
+Write-Host "6️⃣ VERIFICANDO MT5..." -ForegroundColor Yellow
+$mt5Process = Get-Process -Name "terminal64" -ErrorAction SilentlyContinue
+if ($mt5Process) {
+    Write-Host "   ✓ MetaTrader 5 está ejecutándose" -ForegroundColor Green
+} else {
+    Write-Host "   ⚠️ MetaTrader 5 NO está abierto" -ForegroundColor Yellow
+}
+Write-Host ""
+
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host "📋 RESUMEN" -ForegroundColor Cyan
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "🔧 Para iniciar el bot:" -ForegroundColor Yellow
+Write-Host "   python -u live\mt5_trading.py" -ForegroundColor Gray
+Write-Host ""
+
+[HASTA AQUÍ]
+================================================================
+
+3. Guarda el archivo como: DIAGNOSTICO_BOT.ps1
+   IMPORTANTE: En el cuadro de diálogo "Guardar como":
+   - Tipo: "Todos los archivos (*.*)"
+   - Nombre: DIAGNOSTICO_BOT.ps1 (con extensión .ps1)
+   - Ubicación: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+
+
+PASO 4: Ejecutar el diagnóstico
+--------------------------------
+En PowerShell (en el directorio del proyecto), ejecuta:
+
+.\DIAGNOSTICO_BOT.ps1
+
+Si PowerShell bloquea la ejecución, primero ejecuta:
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Luego ejecuta el diagnóstico de nuevo.
+
+
+
+

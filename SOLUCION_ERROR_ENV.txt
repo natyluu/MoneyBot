@@ -1,0 +1,65 @@
+=====================================================================
+PROBLEMA DETECTADO: Archivo .env con error
+=====================================================================
+
+ERROR: El archivo .env tiene texto extra en la linea MIN_RR
+
+Linea incorrecta: MIN_RR=2.0 type .env
+Linea correcta:    MIN_RR=2.0
+
+=====================================================================
+SOLUCION RAPIDA
+=====================================================================
+
+OPCION 1: Usar el script automatico (RECOMENDADO)
+
+1. En Windows, ve a: C:\BOT\trading-bot-windows-20251210 on 'Mac'
+2. Busca: CORREGIR_ENV.bat
+3. Haz doble clic en CORREGIR_ENV.bat
+
+=====================================================================
+OPCION 2: Corregir manualmente con CMD
+=====================================================================
+
+Ejecuta estos comandos UNO POR UNO:
+
+cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+del .env
+echo MT5_LOGIN=94342 > .env
+echo MT5_PASSWORD=Santos2025! >> .env
+echo MT5_SERVER=ZevenGlobal-Live >> .env
+echo MT5_SYMBOL=XAUUSD.vip >> .env
+echo RISK_PER_TRADE=0.01 >> .env
+echo MAX_CONCURRENT_TRADES=3 >> .env
+echo MIN_RR=2.0 >> .env
+
+IMPORTANTE: Ejecuta cada comando por separado, NO los juntes.
+
+Luego verifica:
+type .env
+
+=====================================================================
+OPCION 3: Corregir con Notepad
+=====================================================================
+
+1. Abre Notepad
+2. Abre el archivo: C:\BOT\trading-bot-windows-20251210 on 'Mac'\.env
+3. Busca la linea: MIN_RR=2.0 type .env
+4. Cambiala a: MIN_RR=2.0
+5. Guarda el archivo
+
+=====================================================================
+DESPUES DE CORREGIR
+=====================================================================
+
+1. Verifica el contenido:
+   type .env
+
+2. Inicia el bot:
+   python -u live\mt5_trading.py
+
+=====================================================================
+
+
+
+

@@ -1,0 +1,19 @@
+========================================
+COPIA Y PEGA ESTE COMANDO COMPLETO:
+========================================
+
+python -c "import sys, os, importlib.util; os.chdir(r\"C:\BOT\trading-bot-windows-20251210 on 'Mac'\"); sys.path.insert(0, '.'); c=importlib.util.spec_from_file_location('config', 'config.py'); m=importlib.util.module_from_spec(c); sys.modules['config']=m; c.loader.exec_module(m); b=importlib.util.spec_from_file_location('mt5', 'live/mt5_trading.py'); bot=importlib.util.module_from_spec(b); sys.modules['mt5_trading']=bot; b.loader.exec_module(bot)"
+
+========================================
+O MÁS SIMPLE - EJECUTA ESTOS 3 COMANDOS:
+========================================
+
+1. cd "C:\BOT\trading-bot-windows-20251210 on 'Mac'"
+
+2. python -c "import sys; sys.path.insert(0, '.'); exec(open('live/mt5_trading.py', encoding='utf-8').read())"
+
+3. (Si hay error, verifica que MT5 esté abierto)
+
+
+
+
