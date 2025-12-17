@@ -690,13 +690,22 @@ class ICTHybridStrategy(BaseStrategy):
                 # Usar el swing más lejano de los que están más cerca
                 take_profit_final = min(closer_swings)
         
-        # Calcula Risk:Reward basado en TP Final
+        # Calcula Risk:Reward basado en TP1 (el que realmente se ejecuta primero)
+        # Esto es importante porque el bot valida el RR mínimo basado en TP1
         if direction == 'BULLISH':
-            reward = take_profit_final - entry_price
+            reward = take_profit_1 - entry_price
         else:  # BEARISH
-            reward = entry_price - take_profit_final
+            reward = entry_price - take_profit_1
         
         risk_reward = reward / risk if risk > 0 else 0
+        
+        # También calcula RR del TP Final para referencia (opcional, no se usa para validación)
+        if direction == 'BULLISH':
+            reward_final = take_profit_final - entry_price
+        else:  # BEARISH
+            reward_final = entry_price - take_profit_final
+        
+        risk_reward_final = reward_final / risk if risk > 0 else 0
         
         # Crea zonas activas
         active_zones = []
