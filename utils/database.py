@@ -7,7 +7,7 @@ Permite análisis histórico y mejora continua.
 
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, List, Optional
 from pathlib import Path
 import json
@@ -455,7 +455,7 @@ class TradingDatabase:
         ))
         self.conn.commit()
     
-    def get_daily_drawdown_pct(self, date: date = None) -> float:
+    def get_daily_drawdown_pct(self, target_date: Optional[date] = None) -> float:
         """
         Calcula el drawdown diario porcentual basado en P&L del día.
         
@@ -467,8 +467,8 @@ class TradingDatabase:
             Nota: Retorna negativo para pérdidas, positivo para ganancias
         """
         from datetime import date as date_type
-        if date is None:
-            date = datetime.now().date()
+        if target_date is None:
+            target_date = datetime.now().date()
         
         cursor = self.conn.cursor()
         
@@ -493,7 +493,7 @@ class TradingDatabase:
                 WHERE DATE(entry_time) = ?
                 ORDER BY entry_time ASC
                 LIMIT 1
-            """, (date,))
+            """, (target_date,))
             
             first_trade = cursor.fetchone()
             

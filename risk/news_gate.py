@@ -44,9 +44,19 @@ def detect_usd_yellow_cluster(events: List[Dict], now_utc: datetime,
     for event in usd_yellow_events:
         try:
             event_timestamp_str = event.get('timestamp_utc', '')
+            # Parsear timestamp UTC (formato ISO con Z)
             if event_timestamp_str.endswith('Z'):
                 event_timestamp_str = event_timestamp_str[:-1] + '+00:00'
-            event_dt = datetime.fromisoformat(event_timestamp_str.replace('Z', '+00:00'))
+            elif '+' not in event_timestamp_str and 'Z' not in event_timestamp_str:
+                # Si no tiene timezone, asumir UTC
+                event_timestamp_str = event_timestamp_str + '+00:00'
+            else:
+                event_timestamp_str = event_timestamp_str.replace('Z', '+00:00')
+            
+            event_dt = datetime.fromisoformat(event_timestamp_str)
+            # Convertir a naive datetime (sin timezone) para comparar
+            if event_dt.tzinfo is not None:
+                event_dt = event_dt.replace(tzinfo=None)
             
             if window_start <= event_dt <= window_end:
                 events_in_window += 1
@@ -133,23 +143,42 @@ def should_block_new_entries(
         for event in usd_yellow_events:
             try:
                 event_timestamp_str = event.get('timestamp_utc', '')
+                # Parsear timestamp UTC (formato ISO con Z)
                 if event_timestamp_str.endswith('Z'):
                     event_timestamp_str = event_timestamp_str[:-1] + '+00:00'
-                event_dt = datetime.fromisoformat(event_timestamp_str.replace('Z', '+00:00'))
+                elif '+' not in event_timestamp_str and 'Z' not in event_timestamp_str:
+                    # Si no tiene timezone, asumir UTC
+                    event_timestamp_str = event_timestamp_str + '+00:00'
+                else:
+                    event_timestamp_str = event_timestamp_str.replace('Z', '+00:00')
+                
+                event_dt = datetime.fromisoformat(event_timestamp_str)
+                # Convertir a naive datetime (sin timezone) para comparar
+                if event_dt.tzinfo is not None:
+                    event_dt = event_dt.replace(tzinfo=None)
+                
+                # Asegurar que now_utc es naive (sin timezone)
+                if now_utc.tzinfo is not None:
+                    now_utc_naive = now_utc.replace(tzinfo=None)
+                else:
+                    now_utc_naive = now_utc
                 
                 block_start = event_dt - timedelta(minutes=news_block_pre)
                 block_end = event_dt + timedelta(minutes=news_block_post)
                 
-                if block_start <= now_utc <= block_end:
+                if block_start <= now_utc_naive <= block_end:
                     blocked = True
                     reasons.append(f"Cluster de noticias USD cerca de {event.get('title', 'evento')}")
                     
                     # Activar cooldown después del evento
                     cooldown_end = event_dt + timedelta(minutes=news_cooldown_minutes)
-                    if now_utc < cooldown_end:
+                    if now_utc_naive < cooldown_end:
                         if cooldown_until_utc is None or cooldown_end > cooldown_until_utc:
                             cooldown_until_utc = cooldown_end
-            except Exception:
+            except Exception as e:
+                # Log error pero continúa
+                import sys
+                print(f"⚠️ Error al procesar evento USD: {e}", file=sys.stderr)
                 continue
     
     # (2) Verificar eventos EIA para XAUUSD
@@ -158,17 +187,36 @@ def should_block_new_entries(
             if is_eia_event(event):
                 try:
                     event_timestamp_str = event.get('timestamp_utc', '')
+                    # Parsear timestamp UTC (formato ISO con Z)
                     if event_timestamp_str.endswith('Z'):
                         event_timestamp_str = event_timestamp_str[:-1] + '+00:00'
-                    event_dt = datetime.fromisoformat(event_timestamp_str.replace('Z', '+00:00'))
+                    elif '+' not in event_timestamp_str and 'Z' not in event_timestamp_str:
+                        # Si no tiene timezone, asumir UTC
+                        event_timestamp_str = event_timestamp_str + '+00:00'
+                    else:
+                        event_timestamp_str = event_timestamp_str.replace('Z', '+00:00')
+                    
+                    event_dt = datetime.fromisoformat(event_timestamp_str)
+                    # Convertir a naive datetime (sin timezone) para comparar
+                    if event_dt.tzinfo is not None:
+                        event_dt = event_dt.replace(tzinfo=None)
+                    
+                    # Asegurar que now_utc es naive (sin timezone)
+                    if now_utc.tzinfo is not None:
+                        now_utc_naive = now_utc.replace(tzinfo=None)
+                    else:
+                        now_utc_naive = now_utc
                     
                     block_start = event_dt - timedelta(minutes=eia_block_pre)
                     block_end = event_dt + timedelta(minutes=eia_block_post)
                     
-                    if block_start <= now_utc <= block_end:
+                    if block_start <= now_utc_naive <= block_end:
                         blocked = True
                         reasons.append(f"Evento EIA: {event.get('title', 'EIA')}")
-                except Exception:
+                except Exception as e:
+                    # Log error pero continúa
+                    import sys
+                    print(f"⚠️ Error al procesar evento EIA: {e}", file=sys.stderr)
                     continue
     
     # (3) Verificar spread

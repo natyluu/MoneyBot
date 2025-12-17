@@ -18,7 +18,8 @@ class TestNewsGate(unittest.TestCase):
         """Test detección de cluster de noticias USD"""
         now = datetime.utcnow()
         
-        # Crear eventos de prueba
+        # Crear eventos de prueba dentro de la ventana (45 minutos antes y después de now)
+        # La ventana es ±45 minutos (90/2)
         events = [
             {
                 "timestamp_utc": (now - timedelta(minutes=30)).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -34,9 +35,9 @@ class TestNewsGate(unittest.TestCase):
             }
         ]
         
-        # Debe detectar cluster (2 eventos en 90 minutos)
+        # Debe detectar cluster (2 eventos en ventana de 90 minutos centrada en now)
         result = detect_usd_yellow_cluster(events, now, window_minutes=90, min_events=2)
-        self.assertTrue(result)
+        self.assertTrue(result, f"Debería detectar cluster con 2 eventos en ventana. Now: {now}, Events: {events}")
         
         # No debe detectar cluster con solo 1 evento
         result = detect_usd_yellow_cluster(events[:1], now, window_minutes=90, min_events=2)
@@ -137,7 +138,8 @@ class TestNewsGate(unittest.TestCase):
         }
         
         # Evento EIA dentro de la ventana de bloqueo
-        eia_time = now - timedelta(minutes=10)  # 10 minutos después del evento
+        # El evento fue hace 10 minutos, estamos dentro de la ventana [-30m, +30m]
+        eia_time = now - timedelta(minutes=10)  # Evento hace 10 minutos
         events = [
             {
                 "timestamp_utc": eia_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -158,8 +160,8 @@ class TestNewsGate(unittest.TestCase):
             config=config
         )
         
-        self.assertTrue(blocked)
-        self.assertTrue(any("EIA" in r for r in reasons))
+        self.assertTrue(blocked, f"Debería estar bloqueado. Now: {now}, EIA time: {eia_time}, Reasons: {reasons}")
+        self.assertTrue(any("EIA" in r for r in reasons), f"Debería mencionar EIA en reasons: {reasons}")
 
 
 if __name__ == '__main__':
