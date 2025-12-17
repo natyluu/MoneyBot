@@ -112,3 +112,22 @@ MIN_RR = float(get_env("MIN_RR", "1.5"))  # Risk:Reward mínimo requerido (1:1.5
 TELEGRAM_BOT_TOKEN = get_env("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = get_env("TELEGRAM_CHAT_ID", "")
 
+# ==================== CONFIGURACIÓN NEWS RISK GATE ====================
+# Protección contra noticias económicas y condiciones de mercado adversas
+
+# Filtros de mercado
+SPREAD_MAX = float(get_env("SPREAD_MAX", "50.0"))  # Spread máximo en puntos
+ATR_MAX_RATIO = float(get_env("ATR_MAX_RATIO", "2.0"))  # Ratio ATR máximo (ATR actual / ATR promedio)
+DAILY_DD_LIMIT = float(get_env("DAILY_DD_LIMIT", "-5.0"))  # Drawdown diario límite (%)
+
+# Configuración de noticias USD
+NEWS_USD_WINDOW_MINUTES = int(get_env("NEWS_USD_WINDOW_MINUTES", "90"))  # Ventana para detectar cluster
+NEWS_MIN_EVENTS_FOR_CLUSTER = int(get_env("NEWS_MIN_EVENTS_FOR_CLUSTER", "2"))  # Mínimo de eventos para cluster
+NEWS_BLOCK_PRE_MINUTES = int(get_env("NEWS_BLOCK_PRE_MINUTES", "15"))  # Minutos antes de noticia para bloquear
+NEWS_BLOCK_POST_MINUTES = int(get_env("NEWS_BLOCK_POST_MINUTES", "30"))  # Minutos después de noticia para bloquear
+NEWS_COOLDOWN_MINUTES = int(get_env("NEWS_COOLDOWN_MINUTES", "20"))  # Cooldown después de noticia
+
+# Configuración de eventos EIA (para XAUUSD)
+EIA_BLOCK_PRE_MINUTES = int(get_env("EIA_BLOCK_PRE_MINUTES", "30"))  # Minutos antes de EIA
+EIA_BLOCK_POST_MINUTES = int(get_env("EIA_BLOCK_POST_MINUTES", "30"))  # Minutos después de EIA
+

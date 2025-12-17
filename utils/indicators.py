@@ -96,6 +96,51 @@ def calculate_macd(prices, fast=12, slow=26, signal=9):
     return macd_line, signal_line, histogram
 
 
+def calculate_atr(high, low, close, period=14):
+    """
+    Calcula el Average True Range (ATR).
+    
+    El ATR mide la volatilidad del mercado.
+    Valores altos indican alta volatilidad.
+    
+    Args:
+        high: Serie de precios máximos
+        low: Serie de precios mínimos
+        close: Serie de precios de cierre
+        period: Período para el cálculo (default: 14)
+    
+    Returns:
+        Serie con los valores del ATR
+    """
+    # True Range = max(high - low, abs(high - close_prev), abs(low - close_prev))
+    high_low = high - low
+    high_close = abs(high - close.shift())
+    low_close = abs(low - close.shift())
+    
+    true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    
+    # ATR es la media móvil del True Range
+    atr = true_range.rolling(window=period).mean()
+    
+    return atr
+
+
+def calculate_atr_ratio(current_atr: float, average_atr: float) -> float:
+    """
+    Calcula la relación entre ATR actual y ATR promedio.
+    
+    Args:
+        current_atr: ATR actual
+        average_atr: ATR promedio (de un período más largo)
+    
+    Returns:
+        Ratio (ej: 1.5 significa que el ATR actual es 1.5x el promedio)
+    """
+    if average_atr == 0:
+        return 0.0
+    return current_atr / average_atr
+
+
 
 
 

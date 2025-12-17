@@ -139,12 +139,35 @@ RISK_PER_TRADE = config_module.RISK_PER_TRADE
 MAX_CONCURRENT_TRADES = config_module.MAX_CONCURRENT_TRADES
 MIN_RR = config_module.MIN_RR
 
+# Configuración News Risk Gate
+SPREAD_MAX = config_module.SPREAD_MAX
+ATR_MAX_RATIO = config_module.ATR_MAX_RATIO
+DAILY_DD_LIMIT = config_module.DAILY_DD_LIMIT
+NEWS_USD_WINDOW_MINUTES = config_module.NEWS_USD_WINDOW_MINUTES
+NEWS_MIN_EVENTS_FOR_CLUSTER = config_module.NEWS_MIN_EVENTS_FOR_CLUSTER
+NEWS_BLOCK_PRE_MINUTES = config_module.NEWS_BLOCK_PRE_MINUTES
+NEWS_BLOCK_POST_MINUTES = config_module.NEWS_BLOCK_POST_MINUTES
+NEWS_COOLDOWN_MINUTES = config_module.NEWS_COOLDOWN_MINUTES
+EIA_BLOCK_PRE_MINUTES = config_module.EIA_BLOCK_PRE_MINUTES
+EIA_BLOCK_POST_MINUTES = config_module.EIA_BLOCK_POST_MINUTES
+
 import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+
+# Importar News Risk Gate
+try:
+    from news.provider import get_news_provider
+    from risk.news_gate import should_block_new_entries
+    from utils.indicators import calculate_atr, calculate_atr_ratio
+    NEWS_GATE_AVAILABLE = True
+except ImportError as e:
+    NEWS_GATE_AVAILABLE = False
+    if logger:
+        logger.warning(f"News Risk Gate no disponible: {e}")
 
 # Cargar strategy de manera similar
 try:
@@ -628,6 +651,66 @@ def send_order(direction: str, entry_price: float, stop_loss: float,
     return result.order
 
 
+def get_current_spread(symbol: str = None) -> float:
+    """
+    Obtiene el spread actual del símbolo.
+    
+    Args:
+        symbol: Símbolo (default: MT5_SYMBOL)
+    
+    Returns:
+        Spread en puntos
+    """
+    symbol = symbol or MT5_SYMBOL
+    tick = mt5.symbol_info_tick(symbol)
+    if tick:
+        return tick.ask - tick.bid
+    return 0.0
+
+
+def get_atr_ratio(symbol: str = None, period: int = 14, lookback: int = 50) -> float:
+    """
+    Calcula el ratio ATR actual / ATR promedio.
+    
+    Args:
+        symbol: Símbolo (default: MT5_SYMBOL)
+        period: Período para ATR (default: 14)
+        lookback: Período para calcular promedio (default: 50)
+    
+    Returns:
+        Ratio ATR (ej: 1.5 significa que ATR actual es 1.5x el promedio)
+    """
+    symbol = symbol or MT5_SYMBOL
+    
+    try:
+        # Obtiene datos H1 para calcular ATR
+        df = fetch_candles(symbol, "H1", lookback + period)
+        if df is None or len(df) < lookback + period:
+            return 1.0
+        
+        # Calcula ATR
+        from utils.indicators import calculate_atr
+        atr = calculate_atr(df['high'], df['low'], df['close'], period)
+        
+        if len(atr) < 2:
+            return 1.0
+        
+        # ATR actual (último valor)
+        current_atr = atr.iloc[-1]
+        
+        # ATR promedio (últimos lookback valores)
+        avg_atr = atr.iloc[-lookback:].mean()
+        
+        if avg_atr == 0:
+            return 1.0
+        
+        return current_atr / avg_atr
+    except Exception as e:
+        if logger:
+            logger.warning(f"Error al calcular ATR ratio: {e}")
+        return 1.0
+
+
 def update_open_positions(symbol: str = None) -> List[Dict]:
     """
     Obtiene y muestra información de todas las posiciones abiertas.
@@ -892,6 +975,97 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                 sys.stdout.flush()
                 print("=" * 70, flush=True)
                 sys.stdout.flush()
+                
+                # ========== NEWS RISK GATE ==========
+                # Verifica condiciones de mercado antes de generar señales
+                blocked_by_news = False
+                news_mode = "NORMAL"
+                news_reasons = []
+                cooldown_until = None
+                
+                if NEWS_GATE_AVAILABLE:
+                    try:
+                        # Obtener eventos del día
+                        news_provider = get_news_provider()
+                        today_utc = datetime.utcnow().date()
+                        events_today = news_provider.get_events_for_day(today_utc)
+                        
+                        # Calcular métricas de mercado
+                        current_spread = get_current_spread(MT5_SYMBOL)
+                        atr_ratio = get_atr_ratio(MT5_SYMBOL)
+                        open_positions = update_open_positions(MT5_SYMBOL)
+                        open_positions_count = len(open_positions)
+                        
+                        # Calcular drawdown diario
+                        daily_dd_pct = 0.0
+                        if db:
+                            daily_dd_pct = db.get_daily_drawdown_pct()
+                        
+                        # Configuración para News Gate
+                        news_config = {
+                            'SPREAD_MAX': SPREAD_MAX,
+                            'ATR_MAX_RATIO': ATR_MAX_RATIO,
+                            'DAILY_DD_LIMIT': DAILY_DD_LIMIT,
+                            'NEWS_USD_WINDOW_MINUTES': NEWS_USD_WINDOW_MINUTES,
+                            'NEWS_MIN_EVENTS_FOR_CLUSTER': NEWS_MIN_EVENTS_FOR_CLUSTER,
+                            'NEWS_BLOCK_PRE_MINUTES': NEWS_BLOCK_PRE_MINUTES,
+                            'NEWS_BLOCK_POST_MINUTES': NEWS_BLOCK_POST_MINUTES,
+                            'NEWS_COOLDOWN_MINUTES': NEWS_COOLDOWN_MINUTES,
+                            'EIA_BLOCK_PRE_MINUTES': EIA_BLOCK_PRE_MINUTES,
+                            'EIA_BLOCK_POST_MINUTES': EIA_BLOCK_POST_MINUTES
+                        }
+                        
+                        # Verificar si se deben bloquear nuevas entradas
+                        blocked_by_news, news_mode, news_reasons, cooldown_until = should_block_new_entries(
+                            now_utc=datetime.utcnow(),
+                            symbol=MT5_SYMBOL,
+                            events_today=events_today,
+                            spread=current_spread,
+                            atr_ratio=atr_ratio,
+                            open_positions_count=open_positions_count,
+                            daily_dd_pct=daily_dd_pct,
+                            config=news_config
+                        )
+                        
+                        # Guardar estado en base de datos
+                        if db:
+                            try:
+                                db.save_bot_state(
+                                    symbol=MT5_SYMBOL,
+                                    news_mode=news_mode,
+                                    blocked=blocked_by_news,
+                                    reasons=news_reasons,
+                                    cooldown_until_utc=cooldown_until,
+                                    spread=current_spread,
+                                    atr_ratio=atr_ratio,
+                                    daily_dd_pct=daily_dd_pct
+                                )
+                            except Exception as e:
+                                if logger:
+                                    logger.warning(f"Error al guardar estado del bot: {e}")
+                        
+                        # Loggear estado
+                        if blocked_by_news:
+                            if logger:
+                                logger.warning(f"🚫 News Risk Gate: Bloqueado - {', '.join(news_reasons)}")
+                            print(f"🚫 News Risk Gate: Modo {news_mode} - Bloqueado", flush=True)
+                            for reason in news_reasons:
+                                print(f"   ⚠️ {reason}", flush=True)
+                        elif news_mode != "NORMAL":
+                            if logger:
+                                logger.info(f"⚠️ News Risk Gate: Modo {news_mode}")
+                            print(f"⚠️ News Risk Gate: Modo {news_mode}", flush=True)
+                    except Exception as e:
+                        if logger:
+                            logger.warning(f"Error en News Risk Gate: {e}")
+                        print(f"⚠️ Error en News Risk Gate: {e}", flush=True)
+                
+                # Si está bloqueado, saltar generación de señales pero continuar gestión
+                if blocked_by_news:
+                    print("⏸️ Generación de señales pausada (News Risk Gate activo)", flush=True)
+                    print("   ✅ Continuando gestión de posiciones abiertas...", flush=True)
+                    time.sleep(update_interval)
+                    continue
                 
                 # Construye contexto multi-temporal
                 context = build_multitimeframe_context()

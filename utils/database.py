@@ -135,6 +135,23 @@ class TradingDatabase:
             )
         """)
         
+        # Tabla de estado del bot (para tracking de news gate y otros estados)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bot_state (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp_utc DATETIME NOT NULL,
+                symbol TEXT NOT NULL,
+                news_mode TEXT DEFAULT 'NORMAL',
+                blocked INTEGER DEFAULT 0,
+                reasons TEXT,
+                cooldown_until_utc DATETIME,
+                spread REAL,
+                atr_ratio REAL,
+                daily_dd_pct REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         self.conn.commit()
     
     def save_signal(self, signal: Dict, status: str = "GENERATED", rejection_reason: str = None) -> int:
@@ -401,6 +418,102 @@ class TradingDatabase:
             "profit_factor": 0,
             "avg_risk_reward": 0
         }
+    
+    def save_bot_state(self, symbol: str, news_mode: str, blocked: bool, 
+                      reasons: List[str], cooldown_until_utc: Optional[datetime] = None,
+                      spread: float = None, atr_ratio: float = None, 
+                      daily_dd_pct: float = None):
+        """
+        Guarda el estado actual del bot en la base de datos.
+        
+        Args:
+            symbol: Símbolo operado
+            news_mode: Modo de noticias (NORMAL, CONSERVATIVE, BLOCKED)
+            blocked: Si está bloqueado para nuevas entradas
+            reasons: Lista de razones del bloqueo
+            cooldown_until_utc: Fecha UTC hasta cuando está en cooldown
+            spread: Spread actual
+            atr_ratio: Ratio ATR actual/promedio
+            daily_dd_pct: Drawdown diario porcentual
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO bot_state (
+                timestamp_utc, symbol, news_mode, blocked, reasons,
+                cooldown_until_utc, spread, atr_ratio, daily_dd_pct
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            datetime.utcnow(),
+            symbol,
+            news_mode,
+            1 if blocked else 0,
+            json.dumps(reasons) if reasons else None,
+            cooldown_until_utc,
+            spread,
+            atr_ratio,
+            daily_dd_pct
+        ))
+        self.conn.commit()
+    
+    def get_daily_drawdown_pct(self, date: date = None) -> float:
+        """
+        Calcula el drawdown diario porcentual basado en P&L del día.
+        
+        Args:
+            date: Fecha para calcular (default: hoy)
+        
+        Returns:
+            Drawdown porcentual (ej: -2.5 significa 2.5% de pérdida)
+            Nota: Retorna negativo para pérdidas, positivo para ganancias
+        """
+        from datetime import date as date_type
+        if date is None:
+            date = datetime.now().date()
+        
+        cursor = self.conn.cursor()
+        
+        # Obtiene P&L total del día
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(pnl), 0) as total_pnl,
+                COUNT(*) as total_trades
+            FROM trades
+            WHERE DATE(exit_time) = ? AND exit_time IS NOT NULL
+        """, (date,))
+        
+        result = cursor.fetchone()
+        
+        if result and result['total_trades'] > 0:
+            total_pnl = result['total_pnl'] or 0
+            
+            # Obtiene el balance inicial del día (del primer trade)
+            cursor.execute("""
+                SELECT entry_price, lot_size, direction
+                FROM trades
+                WHERE DATE(entry_time) = ?
+                ORDER BY entry_time ASC
+                LIMIT 1
+            """, (date,))
+            
+            first_trade = cursor.fetchone()
+            
+            if first_trade:
+                # Aproximación: calcula drawdown como % del P&L total
+                # En producción, debería calcularse respecto al balance inicial del día
+                # Por ahora, usamos una aproximación basada en el valor de la posición
+                entry_price = first_trade['entry_price'] or 0
+                lot_size = first_trade['lot_size'] or 0
+                
+                if entry_price > 0 and lot_size > 0:
+                    # Valor aproximado de la posición inicial
+                    position_value = entry_price * lot_size * 100  # Para XAUUSD, 1 lote = 100 onzas
+                    
+                    if position_value > 0:
+                        # Drawdown como porcentaje del valor de posición
+                        dd_pct = (total_pnl / position_value) * 100
+                        return dd_pct
+        
+        return 0.0
     
     def close(self):
         """Cierra la conexión a la base de datos"""
