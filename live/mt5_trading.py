@@ -1109,16 +1109,16 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                 update_open_positions()
                 last_signal_time = current_time
             
-            # Envía reporte de operaciones cada hora
+            # Envía reporte de operaciones cada 12 horas
             last_report_time = getattr(run_auto_trading_loop, 'last_report_time', None)
             if db and telegram and (last_report_time is None or 
-                (current_time - last_report_time).total_seconds() >= 3600):  # Cada 1 hora
+                (current_time - last_report_time).total_seconds() >= 43200):  # Cada 12 horas (43200 segundos)
                 
                 try:
                     # Envía reporte detallado de operaciones
                     success = telegram.send_operations_report(db, include_open_positions=True)
                     if success:
-                        print(f"✅ Reporte de operaciones enviado a Telegram", flush=True)
+                        print(f"✅ Reporte de operaciones enviado a Telegram (cada 12 horas)", flush=True)
                     else:
                         print(f"⚠️ No se pudo enviar reporte de operaciones", flush=True)
                     run_auto_trading_loop.last_report_time = current_time
