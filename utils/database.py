@@ -310,11 +310,14 @@ class TradingDatabase:
         """Obtiene todos los trades del día actual"""
         cursor = self.conn.cursor()
         today = datetime.now().date()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        # SQLite puede almacenar fechas como strings, así que usamos LIKE para mayor compatibilidad
         cursor.execute("""
             SELECT * FROM trades 
-            WHERE DATE(entry_time) = ?
+            WHERE entry_time LIKE ? OR DATE(entry_time) = ?
             ORDER BY entry_time DESC
-        """, (today,))
+        """, (f'{today_str}%', today))
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
     

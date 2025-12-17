@@ -296,7 +296,12 @@ class TelegramAlerts:
         today_trades = report.get("today_trades", [])
         open_positions = report.get("open_positions", [])
         
-        if metrics.get("total_trades", 0) == 0 and len(today_trades) == 0:
+        # Verifica si hay trades del día (abiertos o cerrados) o posiciones abiertas
+        has_trades = len(today_trades) > 0
+        has_open_positions = len(open_positions) > 0
+        has_closed_trades = metrics.get("total_trades", 0) > 0
+        
+        if not has_trades and not has_open_positions and not has_closed_trades:
             message = f"""
 📊 <b>REPORTE DIARIO</b>
 
@@ -317,6 +322,11 @@ class TelegramAlerts:
         pnl = metrics.get("total_pnl", 0)
         pnl_emoji = "💰" if pnl > 0 else "📉" if pnl < 0 else "➖"
         
+        # Cuenta trades abiertos y cerrados
+        open_trades_count = sum(1 for t in today_trades if not t.get("exit_time"))
+        closed_trades_count = sum(1 for t in today_trades if t.get("exit_time"))
+        total_trades_today = len(today_trades)
+        
         message = f"""
 📊 <b>REPORTE DIARIO DE OPERACIONES</b>
 
@@ -326,6 +336,7 @@ class TelegramAlerts:
 📈 <b>RESUMEN DEL DÍA</b>
 ━━━━━━━━━━━━━━━━━━━━
 
+📊 <b>Total Trades Hoy:</b> {total_trades_today} (⏳ {open_trades_count} abiertos | ✅ {closed_trades_count} cerrados)
 📊 <b>Trades Cerrados:</b> {metrics.get('total_trades', 0)}
 {win_rate_emoji} <b>Win Rate:</b> {win_rate:.1f}%
 {pnl_emoji} <b>P&L Total:</b> ${pnl:.2f}
@@ -338,20 +349,32 @@ class TelegramAlerts:
         
         # Agrega trades del día si hay
         if today_trades:
+            # Separa trades abiertos y cerrados
+            closed_trades_list = [t for t in today_trades if t.get("exit_time")]
+            open_trades_list = [t for t in today_trades if not t.get("exit_time")]
+            
             message += f"\n━━━━━━━━━━━━━━━━━━━━\n📋 <b>TRADES DEL DÍA ({len(today_trades)})</b>\n━━━━━━━━━━━━━━━━━━━━\n"
-            for i, trade in enumerate(today_trades[:10], 1):  # Máximo 10 trades
-                direction_emoji = "🟢" if trade.get("direction") == "BUY" else "🔴"
-                pnl_trade = trade.get("pnl", 0)
-                pnl_trade_emoji = "✅" if pnl_trade > 0 else "❌"
-                
-                if trade.get("exit_time"):
-                    # Trade cerrado
+            
+            # Muestra trades cerrados primero
+            if closed_trades_list:
+                message += f"\n✅ <b>TRADES CERRADOS ({len(closed_trades_list)})</b>\n"
+                for i, trade in enumerate(closed_trades_list[:10], 1):  # Máximo 10 trades
+                    direction_emoji = "🟢" if trade.get("direction") == "BUY" else "🔴"
+                    pnl_trade = trade.get("pnl", 0) or 0
+                    pnl_trade_emoji = "✅" if pnl_trade > 0 else "❌" if pnl_trade < 0 else "➖"
+                    
                     message += f"\n{i}. {direction_emoji} <b>{trade.get('direction', 'N/A')}</b> | Ticket: {trade.get('ticket', 'N/A')}\n"
                     message += f"   {pnl_trade_emoji} P&L: ${pnl_trade:.2f} | RR: 1:{trade.get('risk_reward', 0):.2f}\n"
-                else:
-                    # Trade abierto
+            
+            # Muestra trades abiertos
+            if open_trades_list:
+                message += f"\n⏳ <b>TRADES ABIERTOS ({len(open_trades_list)})</b>\n"
+                for i, trade in enumerate(open_trades_list[:10], 1):  # Máximo 10 trades
+                    direction_emoji = "🟢" if trade.get("direction") == "BUY" else "🔴"
+                    
                     message += f"\n{i}. {direction_emoji} <b>{trade.get('direction', 'N/A')}</b> | Ticket: {trade.get('ticket', 'N/A')}\n"
-                    message += f"   ⏳ <b>ABIERTO</b> | Entrada: ${trade.get('entry_price', 0):.2f}\n"
+                    message += f"   📊 Entrada: ${trade.get('entry_price', 0):.2f} | SL: ${trade.get('stop_loss', 0):.2f} | TP: ${trade.get('take_profit', 0):.2f}\n"
+                    message += f"   📈 RR: 1:{trade.get('risk_reward', 0):.2f}\n"
         
         # Agrega posiciones abiertas
         if open_positions:
@@ -380,26 +403,35 @@ class TelegramAlerts:
         if not db:
             return False
         
-        # Obtiene métricas del día
-        today_metrics = db.get_performance_metrics(today_only=True)
-        
-        # Obtiene trades del día
-        today_trades = db.get_today_closed_trades()
-        
-        # Obtiene posiciones abiertas
-        open_positions = []
-        if include_open_positions:
-            open_positions = db.get_open_positions()
-        
-        # Crea el reporte
-        report = {
-            "date": datetime.now().date(),
-            "metrics": today_metrics,
-            "today_trades": today_trades,
-            "open_positions": open_positions
-        }
-        
-        return self.send_daily_report(report)
+        try:
+            # Obtiene métricas del día (solo trades cerrados)
+            today_metrics = db.get_performance_metrics(today_only=True)
+            
+            # Obtiene TODOS los trades del día (abiertos y cerrados)
+            today_trades = db.get_today_trades()
+            
+            # Obtiene posiciones abiertas
+            open_positions = []
+            if include_open_positions:
+                open_positions = db.get_open_positions()
+            
+            # Log para debugging
+            if logger:
+                logger.info(f"📊 Reporte: {len(today_trades)} trades del día, {len(open_positions)} posiciones abiertas")
+            
+            # Crea el reporte
+            report = {
+                "date": datetime.now().date(),
+                "metrics": today_metrics,
+                "today_trades": today_trades,  # Ahora incluye abiertos y cerrados
+                "open_positions": open_positions
+            }
+            
+            return self.send_daily_report(report)
+        except Exception as e:
+            if logger:
+                logger.error(f"Error al generar reporte de operaciones: {e}", exc_info=True)
+            return False
     
     def send_bot_started(self, account_info: Dict = None) -> bool:
         """
