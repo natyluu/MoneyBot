@@ -1233,6 +1233,66 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                 
                                 sys.stdout.flush()
                             else:
+                                # VERIFICACIÓN FINAL: Asegurar que no esté bloqueado por News Risk Gate
+                                # (doble verificación por si el estado cambió entre la verificación inicial y ahora)
+                                if NEWS_GATE_AVAILABLE:
+                                    try:
+                                        news_provider = get_news_provider()
+                                        today_utc = datetime.utcnow().date()
+                                        events_today = news_provider.get_events_for_day(today_utc)
+                                        current_spread = get_current_spread(MT5_SYMBOL)
+                                        atr_ratio = get_atr_ratio(MT5_SYMBOL)
+                                        open_positions_check = update_open_positions(MT5_SYMBOL)
+                                        open_positions_count_check = len(open_positions_check)
+                                        daily_dd_pct_check = 0.0
+                                        if db:
+                                            daily_dd_pct_check = db.get_daily_drawdown_pct()
+                                        
+                                        news_config_check = {
+                                            'SPREAD_MAX': SPREAD_MAX,
+                                            'ATR_MAX_RATIO': ATR_MAX_RATIO,
+                                            'DAILY_DD_LIMIT': DAILY_DD_LIMIT,
+                                            'NEWS_USD_WINDOW_MINUTES': NEWS_USD_WINDOW_MINUTES,
+                                            'NEWS_MIN_EVENTS_FOR_CLUSTER': NEWS_MIN_EVENTS_FOR_CLUSTER,
+                                            'NEWS_BLOCK_PRE_MINUTES': NEWS_BLOCK_PRE_MINUTES,
+                                            'NEWS_BLOCK_POST_MINUTES': NEWS_BLOCK_POST_MINUTES,
+                                            'NEWS_COOLDOWN_MINUTES': NEWS_COOLDOWN_MINUTES,
+                                            'EIA_BLOCK_PRE_MINUTES': EIA_BLOCK_PRE_MINUTES,
+                                            'EIA_BLOCK_POST_MINUTES': EIA_BLOCK_POST_MINUTES,
+                                            'HIGH_NEWS_BLOCK_PRE_MINUTES': HIGH_NEWS_BLOCK_PRE_MINUTES,
+                                            'HIGH_NEWS_BLOCK_POST_MINUTES': HIGH_NEWS_BLOCK_POST_MINUTES,
+                                            'HIGH_NEWS_COOLDOWN_MINUTES': HIGH_NEWS_COOLDOWN_MINUTES
+                                        }
+                                        
+                                        blocked_check, _, reasons_check, _ = should_block_new_entries(
+                                            now_utc=datetime.utcnow(),
+                                            symbol=MT5_SYMBOL,
+                                            events_today=events_today,
+                                            spread=current_spread,
+                                            atr_ratio=atr_ratio,
+                                            open_positions_count=open_positions_count_check,
+                                            daily_dd_pct=daily_dd_pct_check,
+                                            config=news_config_check
+                                        )
+                                        
+                                        if blocked_check:
+                                            if logger:
+                                                logger.warning(f"🚫 Operación bloqueada en última verificación: {', '.join(reasons_check)}")
+                                            print(f"🚫 Operación bloqueada por News Risk Gate (última verificación)", flush=True)
+                                            for reason in reasons_check:
+                                                print(f"   ⚠️ {reason}", flush=True)
+                                            if db:
+                                                try:
+                                                    db.save_signal(signal, status="REJECTED", rejection_reason=f"News Risk Gate: {', '.join(reasons_check)}")
+                                                except:
+                                                    pass
+                                            sys.stdout.flush()
+                                            continue  # Saltar esta señal y continuar con la siguiente
+                                    except Exception as e:
+                                        if logger:
+                                            logger.warning(f"Error en verificación final de News Gate: {e}")
+                                        # Si hay error en la verificación, continuar con precaución
+                                
                                 # Obtiene balance actual
                                 account_info = mt5.account_info()
                                 if account_info:
