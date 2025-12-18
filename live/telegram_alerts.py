@@ -392,13 +392,14 @@ class TelegramAlerts:
         
         return self.send_message(message)
     
-    def send_operations_report(self, db, include_open_positions: bool = True) -> bool:
+    def send_operations_report(self, db, include_open_positions: bool = True, current_positions: list = None) -> bool:
         """
         Envía reporte detallado de operaciones.
         
         Args:
             db: Instancia de TradingDatabase
             include_open_positions: Si incluir posiciones abiertas
+            current_positions: Lista de posiciones actuales desde MT5 (opcional)
         """
         if not db:
             return False
@@ -413,7 +414,46 @@ class TelegramAlerts:
             # Obtiene posiciones abiertas
             open_positions = []
             if include_open_positions:
-                open_positions = db.get_open_positions()
+                # Prioriza posiciones desde MT5 si se proporcionan
+                if current_positions is not None and len(current_positions) > 0:
+                    # Convierte formato MT5 a formato del reporte
+                    open_positions = []
+                    for pos in current_positions:
+                        open_positions.append({
+                            "ticket": pos.get("ticket"),
+                            "symbol": pos.get("symbol"),
+                            "direction": pos.get("type"),  # "BUY" o "SELL"
+                            "entry_price": pos.get("entry_price"),
+                            "current_price": pos.get("current_price"),
+                            "stop_loss": pos.get("stop_loss"),
+                            "take_profit": pos.get("take_profit"),
+                            "unrealized_pnl": pos.get("profit", 0),
+                            "volume": pos.get("volume")
+                        })
+                else:
+                    # Intenta obtener desde MT5 directamente
+                    try:
+                        import MetaTrader5 as mt5
+                        mt5_positions = mt5.positions_get()
+                        if mt5_positions:
+                            open_positions = []
+                            for pos in mt5_positions:
+                                open_positions.append({
+                                    "ticket": pos.ticket,
+                                    "symbol": pos.symbol,
+                                    "direction": "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL",
+                                    "entry_price": pos.price_open,
+                                    "current_price": pos.price_current,
+                                    "stop_loss": pos.sl,
+                                    "take_profit": pos.tp,
+                                    "unrealized_pnl": pos.profit,
+                                    "volume": pos.volume
+                                })
+                    except Exception as e:
+                        if logger:
+                            logger.warning(f"No se pudieron obtener posiciones desde MT5: {e}")
+                        # Fallback a base de datos
+                        open_positions = db.get_open_positions()
             
             # Log para debugging
             if logger:
@@ -488,6 +528,276 @@ class TelegramAlerts:
             message += f"\n⏱️ <b>Tiempo activo:</b> {uptime}"
         
         message += f"\n\n✅ El bot se ha cerrado correctamente"
+        
+        return self.send_message(message)
+    
+    def send_news_gate_blocked(self, reasons: list, mode: str, cooldown_until: str = None) -> bool:
+        """
+        Envía alerta cuando se bloquea una entrada por News Risk Gate.
+        
+        Args:
+            reasons: Lista de razones del bloqueo
+            mode: Modo actual (CONSERVATIVE, BLOCKED)
+            cooldown_until: Fecha/hora hasta cuando está en cooldown (opcional)
+        """
+        emoji = "🚫" if mode == "BLOCKED" else "⚠️"
+        
+        message = f"""
+{emoji} <b>ENTRADA BLOQUEADA - NEWS RISK GATE</b>
+
+📋 <b>Modo:</b> {mode}
+📊 <b>Razones:</b>
+"""
+        for i, reason in enumerate(reasons[:5], 1):  # Máximo 5 razones
+            message += f"   {i}. {reason}\n"
+        
+        if cooldown_until:
+            message += f"\n⏰ <b>Cooldown hasta:</b> {cooldown_until}"
+        
+        message += f"\n\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        return self.send_message(message)
+    
+    def send_market_conditions_alert(self, spread: float, spread_max: float, 
+                                     atr_ratio: float, atr_max: float) -> bool:
+        """
+        Envía alerta cuando hay condiciones de mercado extremas.
+        
+        Args:
+            spread: Spread actual
+            spread_max: Spread máximo permitido
+            atr_ratio: Ratio ATR actual
+            atr_max: Ratio ATR máximo permitido
+        """
+        warnings = []
+        if spread > spread_max * 0.8:  # 80% del máximo
+            warnings.append(f"Spread alto: {spread:.2f} (máx: {spread_max:.2f})")
+        if atr_ratio > atr_max * 0.8:  # 80% del máximo
+            warnings.append(f"Volatilidad alta: ATR {atr_ratio:.2f} (máx: {atr_max:.2f})")
+        
+        if not warnings:
+            return False
+        
+        message = f"""
+⚠️ <b>CONDICIONES DE MERCADO EXTREMAS</b>
+
+"""
+        for warning in warnings:
+            message += f"📊 {warning}\n"
+        
+        message += f"\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        return self.send_message(message)
+    
+    def send_drawdown_alert(self, drawdown_pct: float, limit: float) -> bool:
+        """
+        Envía alerta cuando el drawdown diario es significativo.
+        
+        Args:
+            drawdown_pct: Drawdown porcentual actual (negativo)
+            limit: Límite de drawdown permitido
+        """
+        if drawdown_pct >= limit * 0.7:  # Solo alertar si está cerca del límite (70%)
+            return False
+        
+        severity = "🔴" if drawdown_pct <= limit else "🟡"
+        
+        message = f"""
+{severity} <b>ALERTA DE DRAWDOWN</b>
+
+📉 <b>Drawdown Diario:</b> {drawdown_pct:.2f}%
+🛑 <b>Límite:</b> {limit:.2f}%
+
+"""
+        if drawdown_pct <= limit:
+            message += "🚫 <b>TRADING BLOQUEADO</b> - Drawdown excedido\n"
+        else:
+            message += "⚠️ <b>Atención:</b> Drawdown cercano al límite\n"
+        
+        message += f"\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        return self.send_message(message)
+    
+    def send_losing_streak_alert(self, losing_streak: int, max_streak: int = 3) -> bool:
+        """
+        Envía alerta cuando hay una racha de pérdidas.
+        
+        Args:
+            losing_streak: Número de pérdidas consecutivas
+            max_streak: Número máximo antes de alertar
+        """
+        if losing_streak < max_streak:
+            return False
+        
+        emoji = "🔴" if losing_streak >= max_streak + 2 else "🟡"
+        
+        message = f"""
+{emoji} <b>RACHA DE PÉRDIDAS</b>
+
+❌ <b>Pérdidas consecutivas:</b> {losing_streak}
+⚠️ <b>Recomendación:</b> Revisar estrategia
+
+⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        return self.send_message(message)
+    
+    def send_milestone_alert(self, milestone_type: str, value: float, target: float = None) -> bool:
+        """
+        Envía alerta cuando se alcanza un hito importante.
+        
+        Args:
+            milestone_type: Tipo de hito (win_rate, profit_factor, total_trades, total_profit)
+            value: Valor actual
+            target: Valor objetivo (opcional)
+        """
+        emoji_map = {
+            "win_rate": "🎯",
+            "profit_factor": "💰",
+            "total_trades": "📊",
+            "total_profit": "💎"
+        }
+        
+        title_map = {
+            "win_rate": "Win Rate Objetivo",
+            "profit_factor": "Profit Factor Objetivo",
+            "total_trades": "Hito de Trades",
+            "total_profit": "Hito de Profit"
+        }
+        
+        emoji = emoji_map.get(milestone_type, "🎉")
+        title = title_map.get(milestone_type, "Hito Alcanzado")
+        
+        message = f"""
+{emoji} <b>{title}</b>
+
+📊 <b>Valor actual:</b> {value:.2f}
+"""
+        if target:
+            message += f"🎯 <b>Objetivo:</b> {target:.2f}\n"
+        
+        message += f"\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        return self.send_message(message)
+    
+    def send_upcoming_news_alert(self, event: Dict, minutes_until: int) -> bool:
+        """
+        Envía alerta de noticia importante próxima.
+        
+        Args:
+            event: Diccionario con información del evento
+            minutes_until: Minutos hasta el evento
+        """
+        impact = event.get('impact', 'MED')
+        impact_emoji = "🔴" if impact == "HIGH" else "🟡" if impact == "MED" else "🟢"
+        
+        message = f"""
+{impact_emoji} <b>NOTICIA IMPORTANTE PRÓXIMA</b>
+
+📰 <b>Evento:</b> {event.get('title', 'N/A')}
+📅 <b>Moneda:</b> {event.get('currency', 'N/A')}
+⚠️ <b>Impacto:</b> {impact}
+⏰ <b>En:</b> {minutes_until} minutos
+
+🚫 <b>El bot bloqueará nuevas entradas</b>
+
+⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        return self.send_message(message)
+    
+    def send_weekly_report(self, report: Dict) -> bool:
+        """
+        Envía reporte semanal de operaciones.
+        
+        Args:
+            report: Diccionario con el reporte semanal
+        """
+        metrics = report.get("metrics", {})
+        week_trades = report.get("week_trades", [])
+        
+        win_rate = metrics.get("win_rate", 0)
+        win_rate_emoji = "🟢" if win_rate >= 50 else "🟡" if win_rate >= 40 else "🔴"
+        
+        profit_factor = metrics.get("profit_factor", 0)
+        pf_emoji = "🟢" if profit_factor >= 1.5 else "🟡" if profit_factor >= 1.0 else "🔴"
+        
+        pnl = metrics.get("total_pnl", 0)
+        pnl_emoji = "💰" if pnl > 0 else "📉" if pnl < 0 else "➖"
+        
+        message = f"""
+📊 <b>REPORTE SEMANAL</b>
+
+📅 <b>Semana:</b> {report.get('week_start', 'N/A')} - {report.get('week_end', 'N/A')}
+
+━━━━━━━━━━━━━━━━━━━━
+📈 <b>RESUMEN DE LA SEMANA</b>
+━━━━━━━━━━━━━━━━━━━━
+
+📊 <b>Total Trades:</b> {metrics.get('total_trades', 0)}
+{win_rate_emoji} <b>Win Rate:</b> {win_rate:.1f}%
+{pnl_emoji} <b>P&L Total:</b> ${pnl:.2f}
+{pf_emoji} <b>Profit Factor:</b> {metrics.get('profit_factor', 0):.2f}
+📊 <b>Avg Risk:Reward:</b> 1:{metrics.get('avg_risk_reward', 0):.2f}
+
+✅ <b>Ganadores:</b> {metrics.get('winning_trades', 0)}
+❌ <b>Perdedores:</b> {metrics.get('losing_trades', 0)}
+
+⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        return self.send_message(message)
+    
+    def send_connection_lost_alert(self, component: str, error: str = None) -> bool:
+        """
+        Envía alerta cuando se pierde conexión con un componente crítico.
+        
+        Args:
+            component: Componente que perdió conexión (MT5, Database, etc.)
+            error: Mensaje de error (opcional)
+        """
+        message = f"""
+🔴 <b>CONEXIÓN PERDIDA</b>
+
+⚠️ <b>Componente:</b> {component}
+"""
+        if error:
+            message += f"📋 <b>Error:</b> {error}\n"
+        
+        message += f"\n🔄 <b>El bot intentará reconectar...</b>"
+        message += f"\n\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        return self.send_message(message)
+    
+    def send_high_risk_alert(self, open_positions: int, max_positions: int, 
+                            total_exposure: float = None) -> bool:
+        """
+        Envía alerta cuando hay riesgo alto (muchas posiciones abiertas).
+        
+        Args:
+            open_positions: Número de posiciones abiertas
+            max_positions: Máximo de posiciones permitidas
+            total_exposure: Exposición total (opcional)
+        """
+        if open_positions < max_positions * 0.8:  # Solo alertar si está cerca del máximo (80%)
+            return False
+        
+        emoji = "🔴" if open_positions >= max_positions else "🟡"
+        
+        message = f"""
+{emoji} <b>ALERTA DE RIESGO ALTO</b>
+
+📊 <b>Posiciones abiertas:</b> {open_positions} / {max_positions}
+"""
+        if total_exposure:
+            message += f"💰 <b>Exposición total:</b> ${total_exposure:.2f}\n"
+        
+        if open_positions >= max_positions:
+            message += "\n🚫 <b>Máximo alcanzado - No se abrirán más posiciones</b>\n"
+        else:
+            message += "\n⚠️ <b>Atención:</b> Cerca del límite de posiciones\n"
+        
+        message += f"\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         
         return self.send_message(message)
 

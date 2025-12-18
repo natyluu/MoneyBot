@@ -1054,17 +1054,45 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                 if logger:
                                     logger.warning(f"Error al guardar estado del bot: {e}")
                         
-                        # Loggear estado
+                        # Loggear estado y enviar alerta de Telegram
                         if blocked_by_news:
                             if logger:
                                 logger.warning(f"🚫 News Risk Gate: Bloqueado - {', '.join(news_reasons)}")
                             print(f"🚫 News Risk Gate: Modo {news_mode} - Bloqueado", flush=True)
                             for reason in news_reasons:
                                 print(f"   ⚠️ {reason}", flush=True)
+                            
+                            # Envía alerta de Telegram cuando se bloquea (solo la primera vez o si cambian las razones)
+                            if telegram:
+                                try:
+                                    cooldown_str = cooldown_until.strftime('%Y-%m-%d %H:%M:%S UTC') if cooldown_until else None
+                                    telegram.send_news_gate_blocked(news_reasons, news_mode, cooldown_str)
+                                except Exception as e:
+                                    if logger:
+                                        logger.warning(f"Error al enviar alerta de News Gate: {e}")
                         elif news_mode != "NORMAL":
                             if logger:
                                 logger.info(f"⚠️ News Risk Gate: Modo {news_mode}")
                             print(f"⚠️ News Risk Gate: Modo {news_mode}", flush=True)
+                        
+                        # Alerta de condiciones de mercado extremas
+                        if telegram and (current_spread > SPREAD_MAX * 0.8 or atr_ratio > ATR_MAX_RATIO * 0.8):
+                            try:
+                                telegram.send_market_conditions_alert(
+                                    current_spread, SPREAD_MAX, 
+                                    atr_ratio, ATR_MAX_RATIO
+                                )
+                            except Exception as e:
+                                if logger:
+                                    logger.warning(f"Error al enviar alerta de condiciones de mercado: {e}")
+                        
+                        # Alerta de drawdown significativo
+                        if telegram and daily_dd_pct < DAILY_DD_LIMIT * 0.7:
+                            try:
+                                telegram.send_drawdown_alert(daily_dd_pct, DAILY_DD_LIMIT)
+                            except Exception as e:
+                                if logger:
+                                    logger.warning(f"Error al enviar alerta de drawdown: {e}")
                     except Exception as e:
                         if logger:
                             logger.warning(f"Error en News Risk Gate: {e}")
@@ -1144,6 +1172,15 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                     except:
                                         pass
                                 print(f"⚠️ Máximo de operaciones alcanzado ({MAX_CONCURRENT_TRADES})", flush=True)
+                                
+                                # Alerta de riesgo alto
+                                if telegram:
+                                    try:
+                                        telegram.send_high_risk_alert(len(positions), MAX_CONCURRENT_TRADES)
+                                    except Exception as e:
+                                        if logger:
+                                            logger.warning(f"Error al enviar alerta de riesgo alto: {e}")
+                                
                                 sys.stdout.flush()
                             else:
                                 # Obtiene balance actual
@@ -1263,6 +1300,52 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                     trade_info['pnl_pct'],
                                     trade_info['exit_reason']
                                 )
+                                
+                                # Verificar racha de pérdidas
+                                if db and trade_info['pnl'] < 0:
+                                    try:
+                                        # Obtiene últimos trades cerrados
+                                        recent_trades = db.get_trade_history(limit=10)
+                                        losing_streak = 0
+                                        for trade in recent_trades:
+                                            if trade.get('pnl', 0) < 0:
+                                                losing_streak += 1
+                                            else:
+                                                break
+                                        
+                                        if losing_streak >= 3:
+                                            telegram.send_losing_streak_alert(losing_streak)
+                                    except Exception as e:
+                                        if logger:
+                                            logger.warning(f"Error al verificar racha de pérdidas: {e}")
+                                
+                                # Verificar hitos
+                                if db:
+                                    try:
+                                        metrics = db.get_performance_metrics()
+                                        win_rate = metrics.get('win_rate', 0)
+                                        profit_factor = metrics.get('profit_factor', 0)
+                                        total_trades = metrics.get('total_trades', 0)
+                                        total_pnl = metrics.get('total_pnl', 0)
+                                        
+                                        # Hito de win rate
+                                        if win_rate >= 60 and win_rate < 60.5:  # Solo alertar una vez
+                                            telegram.send_milestone_alert("win_rate", win_rate, 60)
+                                        
+                                        # Hito de profit factor
+                                        if profit_factor >= 2.0 and profit_factor < 2.05:
+                                            telegram.send_milestone_alert("profit_factor", profit_factor, 2.0)
+                                        
+                                        # Hito de número de trades
+                                        if total_trades in [10, 25, 50, 100, 250, 500]:
+                                            telegram.send_milestone_alert("total_trades", total_trades)
+                                        
+                                        # Hito de profit
+                                        if total_pnl > 0 and total_pnl in [100, 500, 1000, 2500, 5000, 10000]:
+                                            telegram.send_milestone_alert("total_profit", total_pnl)
+                                    except Exception as e:
+                                        if logger:
+                                            logger.warning(f"Error al verificar hitos: {e}")
                             except Exception as e:
                                 if logger:
                                     logger.warning(f"Error al enviar alerta de trade cerrado: {e}")
@@ -1299,8 +1382,15 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                 (current_time - last_report_time).total_seconds() >= 43200):  # Cada 12 horas (43200 segundos)
                 
                 try:
-                    # Envía reporte detallado de operaciones
-                    success = telegram.send_operations_report(db, include_open_positions=True)
+                    # Obtener posiciones actuales desde MT5
+                    current_positions = update_open_positions(MT5_SYMBOL)
+                    
+                    # Envía reporte detallado de operaciones con posiciones actuales
+                    success = telegram.send_operations_report(
+                        db, 
+                        include_open_positions=True,
+                        current_positions=current_positions
+                    )
                     if success:
                         print(f"✅ Reporte de operaciones enviado a Telegram (cada 12 horas)", flush=True)
                     else:
@@ -1308,6 +1398,43 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                     run_auto_trading_loop.last_report_time = current_time
                 except Exception as e:
                     print(f"❌ Error al enviar reporte de operaciones: {e}", flush=True)
+            
+            # Envía reporte semanal los domingos a las 00:00
+            if db and telegram:
+                try:
+                    current_weekday = current_time.weekday()  # 0 = Lunes, 6 = Domingo
+                    current_hour = current_time.hour
+                    last_weekly_report = getattr(run_auto_trading_loop, 'last_weekly_report', None)
+                    
+                    # Si es domingo a las 00:00 y no se ha enviado esta semana
+                    if current_weekday == 6 and current_hour == 0 and (
+                        last_weekly_report is None or 
+                        (current_time - last_weekly_report).days >= 7
+                    ):
+                        # Obtener métricas de la semana
+                        week_start = current_time - timedelta(days=7)
+                        week_metrics = db.get_performance_metrics(
+                            start_date=week_start.date(),
+                            end_date=current_time.date()
+                        )
+                        week_trades = db.get_trade_history(
+                            start_date=week_start.date(),
+                            end_date=current_time.date()
+                        )
+                        
+                        weekly_report = {
+                            "week_start": week_start.strftime('%Y-%m-%d'),
+                            "week_end": current_time.strftime('%Y-%m-%d'),
+                            "metrics": week_metrics,
+                            "week_trades": week_trades
+                        }
+                        
+                        telegram.send_weekly_report(weekly_report)
+                        run_auto_trading_loop.last_weekly_report = current_time
+                        print(f"✅ Reporte semanal enviado a Telegram", flush=True)
+                except Exception as e:
+                    if logger:
+                        logger.warning(f"Error al enviar reporte semanal: {e}")
                     if logger:
                         logger.warning(f"Error al enviar reporte de operaciones: {e}")
             
