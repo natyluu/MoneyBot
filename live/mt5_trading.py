@@ -880,9 +880,24 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                 telegram = TelegramAlerts(telegram_token, telegram_chat)
                 if logger:
                     logger.info("✅ Alertas de Telegram inicializadas")
+                print(f"✅ Telegram configurado - Chat ID: {telegram_chat}", flush=True)
+                # Probar envío de mensaje de prueba
+                try:
+                    test_success = telegram.send_message("🧪 Mensaje de prueba - Bot iniciado correctamente")
+                    if test_success:
+                        print("✅ Mensaje de prueba enviado a Telegram", flush=True)
+                    else:
+                        print("⚠️ No se pudo enviar mensaje de prueba a Telegram", flush=True)
+                        if logger:
+                            logger.warning("No se pudo enviar mensaje de prueba a Telegram")
+                except Exception as e:
+                    print(f"❌ Error al enviar mensaje de prueba: {e}", flush=True)
+                    if logger:
+                        logger.warning(f"Error al enviar mensaje de prueba: {e}")
             else:
                 if logger:
                     logger.info("ℹ️ Telegram no configurado (opcional)")
+                print("⚠️ Telegram NO está configurado - No se enviarán alertas", flush=True)
         except Exception as e:
             print(f"⚠️ No se pudo inicializar Telegram: {e}")
             if logger:
@@ -942,6 +957,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
     last_signal_time = None
     last_status_time = None
     last_position_check_time = None
+    last_news_gate_state = None  # Para rastrear estado del News Gate y evitar mensajes duplicados
     
     print(f"\n⚙️ Configuración:", flush=True)
     sys.stdout.flush()
@@ -1062,14 +1078,46 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             for reason in news_reasons:
                                 print(f"   ⚠️ {reason}", flush=True)
                             
-                            # Envía alerta de Telegram cuando se bloquea (solo la primera vez o si cambian las razones)
+                            # Crear un hash del estado actual para comparar y evitar mensajes duplicados
+                            cooldown_str = cooldown_until.strftime('%Y-%m-%d %H:%M:%S UTC') if cooldown_until else None
+                            current_state = (tuple(sorted(news_reasons)), news_mode, cooldown_str)
+                            
+                            # Envía alerta de Telegram solo si el estado cambió
                             if telegram:
-                                try:
-                                    cooldown_str = cooldown_until.strftime('%Y-%m-%d %H:%M:%S UTC') if cooldown_until else None
-                                    telegram.send_news_gate_blocked(news_reasons, news_mode, cooldown_str)
-                                except Exception as e:
+                                if current_state != last_news_gate_state:
+                                    try:
+                                        success = telegram.send_news_gate_blocked(news_reasons, news_mode, cooldown_str)
+                                        
+                                        if success:
+                                            print(f"✅ Alerta de News Gate enviada a Telegram", flush=True)
+                                            if logger:
+                                                logger.info("Alerta de News Gate enviada a Telegram")
+                                            last_news_gate_state = current_state
+                                            
+                                            # Enviar mensaje adicional de cooldown si existe
+                                            if cooldown_str:
+                                                try:
+                                                    cooldown_message = f"⏰ Cooldown hasta: {cooldown_str}"
+                                                    telegram.send_message(cooldown_message)
+                                                except Exception as e:
+                                                    if logger:
+                                                        logger.debug(f"No se pudo enviar mensaje de cooldown: {e}")
+                                        else:
+                                            print(f"⚠️ No se pudo enviar alerta de News Gate a Telegram", flush=True)
+                                            if logger:
+                                                logger.warning("No se pudo enviar alerta de News Gate a Telegram")
+                                    except Exception as e:
+                                        print(f"❌ Error al enviar alerta de News Gate a Telegram: {e}", flush=True)
+                                        if logger:
+                                            logger.error(f"Error al enviar alerta de News Gate: {e}", exc_info=True)
+                                else:
+                                    # Estado no cambió, no enviar mensaje duplicado
                                     if logger:
-                                        logger.warning(f"Error al enviar alerta de News Gate: {e}")
+                                        logger.debug("News Gate bloqueado, pero estado no cambió. No se envía mensaje duplicado.")
+                        else:
+                            # No está bloqueado, resetear el estado para que se envíe mensaje si vuelve a bloquearse
+                            if last_news_gate_state is not None:
+                                last_news_gate_state = None
                         elif news_mode != "NORMAL":
                             if logger:
                                 logger.info(f"⚠️ News Risk Gate: Modo {news_mode}")
