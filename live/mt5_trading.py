@@ -1118,10 +1118,12 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             # No está bloqueado, resetear el estado para que se envíe mensaje si vuelve a bloquearse
                             if last_news_gate_state is not None:
                                 last_news_gate_state = None
-                        elif news_mode != "NORMAL":
-                            if logger:
-                                logger.info(f"⚠️ News Risk Gate: Modo {news_mode}")
-                            print(f"⚠️ News Risk Gate: Modo {news_mode}", flush=True)
+                            
+                            # Si no está bloqueado pero el modo no es NORMAL, mostrar advertencia
+                            if news_mode != "NORMAL":
+                                if logger:
+                                    logger.info(f"⚠️ News Risk Gate: Modo {news_mode}")
+                                print(f"⚠️ News Risk Gate: Modo {news_mode}", flush=True)
                         
                         # Alerta de condiciones de mercado extremas
                         if telegram and (current_spread > SPREAD_MAX * 0.8 or atr_ratio > ATR_MAX_RATIO * 0.8):
