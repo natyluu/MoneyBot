@@ -1,0 +1,47 @@
+========================================
+COMANDOS PARA SUBIR A GITHUB (VPS Windows)
+========================================
+
+Copia y pega estos comandos uno por uno en CMD:
+
+1. Ir al directorio:
+   cd "C:\bot de trader"
+
+2. Verificar estado:
+   git status
+
+3. Agregar todos los cambios:
+   git add -A
+
+4. Ver qué se agregó:
+   git status --short
+
+5. Hacer commit:
+   git commit -m "Mejoras News Risk Gate: SafeNewsProvider, bloqueo eventos HIGH, file locking seguro"
+
+6. Subir a GitHub:
+   git push origin main
+
+Si "main" no funciona, intenta:
+   git push origin master
+
+O simplemente:
+   git push
+
+========================================
+SI HAY ERRORES:
+========================================
+
+Si dice "no changes added to commit":
+- Ejecuta: git status
+- Verifica qué archivos aparecen como modificados
+- Si no hay archivos, puede que ya estén commiteados
+
+Si dice "fatal: not a git repository":
+- Ejecuta: git init
+- Luego: git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
+
+Si pide credenciales:
+- Usuario: tu usuario de GitHub
+- Contraseña: Personal Access Token (NO tu contraseña real)
+- Crea token en: https://github.com/settings/tokens

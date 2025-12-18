@@ -36,9 +36,18 @@ def main():
     
     if not result.stdout.strip():
         print("   ✅ No hay cambios pendientes")
-        print("   💡 Ejecutando git pull para asegurar que estás actualizado...")
-        run_command("git pull", "Actualizando desde GitHub")
-        return
+        print("   💡 Verificando si hay commits sin push...")
+        
+        # Verificar si hay commits sin push
+        result_push = subprocess.run("git log origin/main..HEAD --oneline 2>/dev/null || git log origin/master..HEAD --oneline 2>/dev/null || echo ''", shell=True, capture_output=True, text=True, cwd=project_root)
+        
+        if result_push.stdout.strip():
+            print(f"   📝 Hay commits sin push:")
+            print(result_push.stdout)
+            print("\n   Continuando con push...")
+        else:
+            print("   ✅ Todo está sincronizado con GitHub")
+            return
     
     print("   📝 Cambios detectados:")
     print(result.stdout)
@@ -47,17 +56,17 @@ def main():
     if not run_command("git add -A", "Agregando cambios"):
         return
     
-    # 3. Commit
+    # 3. Commit automático con mensaje descriptivo
     from datetime import datetime
-    commit_message = input("\n📝 Mensaje del commit (o Enter para 'Actualización automática'): ").strip()
-    if not commit_message:
-        commit_message = f"Actualización automática: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    commit_message = f"Mejoras News Risk Gate: SafeNewsProvider, bloqueo eventos HIGH, file locking seguro - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    
+    print(f"\n📝 Mensaje del commit: {commit_message}")
     
     if not run_command(f'git commit -m "{commit_message}"', "Haciendo commit"):
         return
     
-    # 4. Push a GitHub
-    if not run_command("git push", "Subiendo a GitHub"):
+    # 4. Push a GitHub (intenta main primero, luego master)
+    if not run_command("git push origin main 2>&1 || git push origin master 2>&1 || git push 2>&1", "Subiendo a GitHub"):
         return
     
     print("\n" + "=" * 70)

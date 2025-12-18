@@ -131,3 +131,8 @@ NEWS_COOLDOWN_MINUTES = int(get_env("NEWS_COOLDOWN_MINUTES", "20"))  # Cooldown 
 EIA_BLOCK_PRE_MINUTES = int(get_env("EIA_BLOCK_PRE_MINUTES", "30"))  # Minutos antes de EIA
 EIA_BLOCK_POST_MINUTES = int(get_env("EIA_BLOCK_POST_MINUTES", "30"))  # Minutos después de EIA
 
+# Configuración de eventos HIGH (NFP, CPI, Inflation, etc.)
+HIGH_NEWS_BLOCK_PRE_MINUTES = int(get_env("HIGH_NEWS_BLOCK_PRE_MINUTES", "30"))  # Minutos antes de evento HIGH
+HIGH_NEWS_BLOCK_POST_MINUTES = int(get_env("HIGH_NEWS_BLOCK_POST_MINUTES", "60"))  # Minutos después de evento HIGH
+HIGH_NEWS_COOLDOWN_MINUTES = int(get_env("HIGH_NEWS_COOLDOWN_MINUTES", "30"))  # Cooldown después de evento HIGH
+

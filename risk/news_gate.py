@@ -81,6 +81,73 @@ def is_eia_event(event: Dict) -> bool:
     return any(keyword in title for keyword in eia_keywords)
 
 
+def is_fed_speech_event(event: Dict) -> bool:
+    """
+    Verifica si un evento es un discurso de la Fed.
+    
+    Args:
+        event: Diccionario con información del evento
+    
+    Returns:
+        True si es discurso de Fed
+    """
+    title = event.get('title', '').upper()
+    fed_keywords = ['FED', 'FOMC', 'POWELL', 'SPEECH', 'TESTIMONY', 'BOSTIC', 'WALLER']
+    return any(keyword in title for keyword in fed_keywords)
+
+
+def is_high_impact_event(event: Dict) -> bool:
+    """
+    Verifica si un evento es de alto impacto económico.
+    
+    Args:
+        event: Diccionario con información del evento
+    
+    Returns:
+        True si es evento de alto impacto
+    """
+    impact = event.get('impact', '').upper()
+    if impact == 'HIGH':
+        return True
+    
+    # También considerar eventos MED importantes
+    title = event.get('title', '').upper()
+    high_impact_keywords = [
+        'CPI', 'INFLATION', 'NFP', 'NON-FARM PAYROLLS', 'GDP',
+        'INTEREST RATE', 'RATE DECISION', 'FOMC', 'FED',
+        'EMPLOYMENT', 'UNEMPLOYMENT', 'RETAIL SALES'
+    ]
+    return any(keyword in title for keyword in high_impact_keywords)
+
+
+def get_relevant_currencies_for_symbol(symbol: str) -> List[str]:
+    """
+    Obtiene las divisas relevantes para un símbolo.
+    Para XAUUSD, las noticias de USD, GBP, EUR pueden afectar.
+    
+    Args:
+        symbol: Símbolo a operar
+    
+    Returns:
+        Lista de códigos de divisas relevantes
+    """
+    symbol_upper = symbol.upper()
+    
+    # Para XAUUSD, las noticias de USD, GBP, EUR son relevantes
+    if 'XAU' in symbol_upper or 'GOLD' in symbol_upper:
+        return ['USD', 'GBP', 'EUR']
+    
+    # Para otros símbolos, extraer las divisas del par
+    # Por ejemplo, EURUSD -> ['EUR', 'USD']
+    if len(symbol_upper) >= 6:
+        base = symbol_upper[:3]
+        quote = symbol_upper[3:6]
+        return [base, quote]
+    
+    # Default: USD siempre relevante
+    return ['USD']
+
+
 def should_block_new_entries(
     now_utc: datetime,
     symbol: str,
@@ -124,11 +191,115 @@ def should_block_new_entries(
     news_min_events = config.get('NEWS_MIN_EVENTS_FOR_CLUSTER', 2)
     news_block_pre = config.get('NEWS_BLOCK_PRE_MINUTES', 15)
     news_block_post = config.get('NEWS_BLOCK_POST_MINUTES', 30)
+    # Tiempos más largos para eventos HIGH
+    high_news_block_pre = config.get('HIGH_NEWS_BLOCK_PRE_MINUTES', 30)
+    high_news_block_post = config.get('HIGH_NEWS_BLOCK_POST_MINUTES', 60)
     eia_block_pre = config.get('EIA_BLOCK_PRE_MINUTES', 30)
     eia_block_post = config.get('EIA_BLOCK_POST_MINUTES', 30)
     news_cooldown_minutes = config.get('NEWS_COOLDOWN_MINUTES', 20)
+    high_news_cooldown_minutes = config.get('HIGH_NEWS_COOLDOWN_MINUTES', 30)
     
-    # (1) Verificar cluster de noticias USD amarillas
+    # Obtener divisas relevantes para el símbolo
+    relevant_currencies = get_relevant_currencies_for_symbol(symbol)
+    
+    # Asegurar que now_utc es naive (sin timezone) para comparar
+    if now_utc.tzinfo is not None:
+        now_utc_naive = now_utc.replace(tzinfo=None)
+    else:
+        now_utc_naive = now_utc
+    
+    # (1) Verificar eventos HIGH individuales (cualquier divisa relevante)
+    for event in events_today:
+        event_currency = event.get('currency', '')
+        event_impact = event.get('impact', '').upper()
+        
+        # Solo considerar eventos de divisas relevantes
+        if event_currency not in relevant_currencies:
+            continue
+        
+        # Bloquear eventos HIGH individuales
+        if event_impact == 'HIGH' or is_high_impact_event(event):
+            try:
+                event_timestamp_str = event.get('timestamp_utc', '')
+                # Parsear timestamp UTC
+                if event_timestamp_str.endswith('Z'):
+                    event_timestamp_str = event_timestamp_str[:-1] + '+00:00'
+                elif '+' not in event_timestamp_str and 'Z' not in event_timestamp_str:
+                    event_timestamp_str = event_timestamp_str + '+00:00'
+                else:
+                    event_timestamp_str = event_timestamp_str.replace('Z', '+00:00')
+                
+                event_dt = datetime.fromisoformat(event_timestamp_str)
+                if event_dt.tzinfo is not None:
+                    event_dt = event_dt.replace(tzinfo=None)
+                
+                # Usar tiempos más largos para eventos HIGH
+                block_pre = high_news_block_pre if event_impact == 'HIGH' else news_block_pre
+                block_post = high_news_block_post if event_impact == 'HIGH' else news_block_post
+                
+                block_start = event_dt - timedelta(minutes=block_pre)
+                block_end = event_dt + timedelta(minutes=block_post)
+                
+                if block_start <= now_utc_naive <= block_end:
+                    blocked = True
+                    mode = "BLOCKED"
+                    reasons.append(f"Evento HIGH {event_currency}: {event.get('title', 'evento')}")
+                    
+                    # Cooldown más largo para eventos HIGH
+                    cooldown_mins = high_news_cooldown_minutes if event_impact == 'HIGH' else news_cooldown_minutes
+                    cooldown_end = event_dt + timedelta(minutes=cooldown_mins)
+                    if now_utc_naive < cooldown_end:
+                        if cooldown_until_utc is None or cooldown_end > cooldown_until_utc:
+                            cooldown_until_utc = cooldown_end
+            except Exception as e:
+                import sys
+                print(f"⚠️ Error al procesar evento HIGH: {e}", file=sys.stderr)
+                continue
+    
+    # (2) Verificar eventos MED importantes (Fed speeches, CPI, etc.)
+    for event in events_today:
+        event_currency = event.get('currency', '')
+        event_impact = event.get('impact', '').upper()
+        
+        # Solo considerar eventos de divisas relevantes
+        if event_currency not in relevant_currencies:
+            continue
+        
+        # Bloquear eventos MED importantes
+        if event_impact == 'MED' and (is_fed_speech_event(event) or is_high_impact_event(event)):
+            try:
+                event_timestamp_str = event.get('timestamp_utc', '')
+                # Parsear timestamp UTC
+                if event_timestamp_str.endswith('Z'):
+                    event_timestamp_str = event_timestamp_str[:-1] + '+00:00'
+                elif '+' not in event_timestamp_str and 'Z' not in event_timestamp_str:
+                    event_timestamp_str = event_timestamp_str + '+00:00'
+                else:
+                    event_timestamp_str = event_timestamp_str.replace('Z', '+00:00')
+                
+                event_dt = datetime.fromisoformat(event_timestamp_str)
+                if event_dt.tzinfo is not None:
+                    event_dt = event_dt.replace(tzinfo=None)
+                
+                # Usar tiempos similares a HIGH para eventos MED importantes
+                block_start = event_dt - timedelta(minutes=high_news_block_pre)
+                block_end = event_dt + timedelta(minutes=high_news_block_post)
+                
+                if block_start <= now_utc_naive <= block_end:
+                    blocked = True
+                    mode = "BLOCKED"
+                    reasons.append(f"Evento MED importante {event_currency}: {event.get('title', 'evento')}")
+                    
+                    cooldown_end = event_dt + timedelta(minutes=high_news_cooldown_minutes)
+                    if now_utc_naive < cooldown_end:
+                        if cooldown_until_utc is None or cooldown_end > cooldown_until_utc:
+                            cooldown_until_utc = cooldown_end
+            except Exception as e:
+                import sys
+                print(f"⚠️ Error al procesar evento MED importante: {e}", file=sys.stderr)
+                continue
+    
+    # (3) Verificar cluster de noticias USD amarillas
     has_cluster = detect_usd_yellow_cluster(events_today, now_utc, news_window_minutes, news_min_events)
     
     if has_cluster:
@@ -157,12 +328,6 @@ def should_block_new_entries(
                 if event_dt.tzinfo is not None:
                     event_dt = event_dt.replace(tzinfo=None)
                 
-                # Asegurar que now_utc es naive (sin timezone)
-                if now_utc.tzinfo is not None:
-                    now_utc_naive = now_utc.replace(tzinfo=None)
-                else:
-                    now_utc_naive = now_utc
-                
                 block_start = event_dt - timedelta(minutes=news_block_pre)
                 block_end = event_dt + timedelta(minutes=news_block_post)
                 
@@ -181,7 +346,7 @@ def should_block_new_entries(
                 print(f"⚠️ Error al procesar evento USD: {e}", file=sys.stderr)
                 continue
     
-    # (2) Verificar eventos EIA para XAUUSD
+    # (4) Verificar eventos EIA para XAUUSD
     if symbol.upper() in ['XAUUSD', 'XAUUSD.VIP', 'GOLD']:
         for event in events_today:
             if is_eia_event(event):
@@ -201,12 +366,6 @@ def should_block_new_entries(
                     if event_dt.tzinfo is not None:
                         event_dt = event_dt.replace(tzinfo=None)
                     
-                    # Asegurar que now_utc es naive (sin timezone)
-                    if now_utc.tzinfo is not None:
-                        now_utc_naive = now_utc.replace(tzinfo=None)
-                    else:
-                        now_utc_naive = now_utc
-                    
                     block_start = event_dt - timedelta(minutes=eia_block_pre)
                     block_end = event_dt + timedelta(minutes=eia_block_post)
                     
@@ -219,29 +378,28 @@ def should_block_new_entries(
                     print(f"⚠️ Error al procesar evento EIA: {e}", file=sys.stderr)
                     continue
     
-    # (3) Verificar spread
+    # (5) Verificar spread
     if spread > spread_max:
         blocked = True
         mode = "BLOCKED"
         reasons.append(f"Spread alto: {spread:.2f} > {spread_max:.2f}")
     
-    # (4) Verificar volatilidad (ATR)
+    # (6) Verificar volatilidad (ATR)
     if atr_ratio > atr_max_ratio:
         blocked = True
         mode = "BLOCKED"
         reasons.append(f"Volatilidad alta: ATR ratio {atr_ratio:.2f} > {atr_max_ratio:.2f}")
     
-    # (5) Verificar drawdown diario (kill switch)
+    # (7) Verificar drawdown diario (kill switch)
     if daily_dd_pct <= daily_dd_limit:  # Negativo, así que <= significa más pérdida
         blocked = True
         mode = "BLOCKED"
         reasons.append(f"Drawdown diario excedido: {daily_dd_pct:.2f}% <= {daily_dd_limit:.2f}%")
     
     # Si hay cooldown activo, bloquear
-    if cooldown_until_utc and now_utc < cooldown_until_utc:
+    if cooldown_until_utc and now_utc_naive < cooldown_until_utc:
         blocked = True
         if "Cooldown post-noticia" not in reasons:
             reasons.append(f"Cooldown activo hasta {cooldown_until_utc.strftime('%H:%M:%S')} UTC")
     
     return blocked, mode, reasons, cooldown_until_utc
-

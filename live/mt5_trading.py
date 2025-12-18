@@ -150,6 +150,13 @@ NEWS_BLOCK_POST_MINUTES = config_module.NEWS_BLOCK_POST_MINUTES
 NEWS_COOLDOWN_MINUTES = config_module.NEWS_COOLDOWN_MINUTES
 EIA_BLOCK_PRE_MINUTES = config_module.EIA_BLOCK_PRE_MINUTES
 EIA_BLOCK_POST_MINUTES = config_module.EIA_BLOCK_POST_MINUTES
+HIGH_NEWS_BLOCK_PRE_MINUTES = config_module.HIGH_NEWS_BLOCK_PRE_MINUTES
+HIGH_NEWS_BLOCK_POST_MINUTES = config_module.HIGH_NEWS_BLOCK_POST_MINUTES
+HIGH_NEWS_COOLDOWN_MINUTES = config_module.HIGH_NEWS_COOLDOWN_MINUTES
+NEWS_BLOCK_POST_MINUTES = config_module.NEWS_BLOCK_POST_MINUTES
+NEWS_COOLDOWN_MINUTES = config_module.NEWS_COOLDOWN_MINUTES
+EIA_BLOCK_PRE_MINUTES = config_module.EIA_BLOCK_PRE_MINUTES
+EIA_BLOCK_POST_MINUTES = config_module.EIA_BLOCK_POST_MINUTES
 
 import MetaTrader5 as mt5
 import pandas as pd
@@ -1012,7 +1019,10 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             'NEWS_BLOCK_POST_MINUTES': NEWS_BLOCK_POST_MINUTES,
                             'NEWS_COOLDOWN_MINUTES': NEWS_COOLDOWN_MINUTES,
                             'EIA_BLOCK_PRE_MINUTES': EIA_BLOCK_PRE_MINUTES,
-                            'EIA_BLOCK_POST_MINUTES': EIA_BLOCK_POST_MINUTES
+                            'EIA_BLOCK_POST_MINUTES': EIA_BLOCK_POST_MINUTES,
+                            'HIGH_NEWS_BLOCK_PRE_MINUTES': HIGH_NEWS_BLOCK_PRE_MINUTES,
+                            'HIGH_NEWS_BLOCK_POST_MINUTES': HIGH_NEWS_BLOCK_POST_MINUTES,
+                            'HIGH_NEWS_COOLDOWN_MINUTES': HIGH_NEWS_COOLDOWN_MINUTES
                         }
                         
                         # Verificar si se deben bloquear nuevas entradas
