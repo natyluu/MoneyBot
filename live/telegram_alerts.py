@@ -473,6 +473,171 @@ class TelegramAlerts:
                 logger.error(f"Error al generar reporte de operaciones: {e}", exc_info=True)
             return False
     
+    def send_hourly_report(self, db, include_open_positions: bool = True, current_positions: list = None) -> bool:
+        """
+        Envía reporte horario con trades ejecutados (abiertos y cerrados).
+        
+        Args:
+            db: Instancia de TradingDatabase
+            include_open_positions: Si incluir posiciones abiertas
+            current_positions: Lista de posiciones actuales desde MT5 (opcional)
+        """
+        if not db:
+            return False
+        
+        try:
+            # Obtiene métricas del día (solo trades cerrados)
+            today_metrics = db.get_performance_metrics(today_only=True)
+            
+            # Obtiene TODOS los trades del día (abiertos y cerrados)
+            today_trades = db.get_today_trades()
+            
+            # Obtiene posiciones abiertas
+            open_positions = []
+            if include_open_positions:
+                # Prioriza posiciones desde MT5 si se proporcionan
+                if current_positions is not None and len(current_positions) > 0:
+                    open_positions = []
+                    for pos in current_positions:
+                        open_positions.append({
+                            "ticket": pos.get("ticket"),
+                            "symbol": pos.get("symbol"),
+                            "direction": pos.get("type"),
+                            "entry_price": pos.get("entry_price"),
+                            "current_price": pos.get("current_price"),
+                            "stop_loss": pos.get("stop_loss"),
+                            "take_profit": pos.get("take_profit"),
+                            "unrealized_pnl": pos.get("profit", 0),
+                            "volume": pos.get("volume")
+                        })
+                else:
+                    try:
+                        import MetaTrader5 as mt5
+                        mt5_positions = mt5.positions_get()
+                        if mt5_positions:
+                            open_positions = []
+                            for pos in mt5_positions:
+                                open_positions.append({
+                                    "ticket": pos.ticket,
+                                    "symbol": pos.symbol,
+                                    "direction": "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL",
+                                    "entry_price": pos.price_open,
+                                    "current_price": pos.price_current,
+                                    "stop_loss": pos.sl,
+                                    "take_profit": pos.tp,
+                                    "unrealized_pnl": pos.profit,
+                                    "volume": pos.volume
+                                })
+                    except Exception as e:
+                        if logger:
+                            logger.warning(f"No se pudieron obtener posiciones desde MT5: {e}")
+                        open_positions = db.get_open_positions()
+            
+            # Separa trades abiertos y cerrados
+            closed_trades_list = [t for t in today_trades if t.get("exit_time")]
+            open_trades_list = [t for t in today_trades if not t.get("exit_time")]
+            
+            # Construye mensaje
+            message = f"""
+📊 <b>REPORTE HORARIO</b>
+
+⏰ <b>Hora:</b> {datetime.now().strftime('%H:%M:%S')}
+📅 <b>Fecha:</b> {datetime.now().strftime('%Y-%m-%d')}
+
+━━━━━━━━━━━━━━━━━━━━
+📈 <b>RESUMEN</b>
+━━━━━━━━━━━━━━━━━━━━
+
+📊 <b>Total Trades Hoy:</b> {len(today_trades)} (⏳ {len(open_trades_list)} abiertos | ✅ {len(closed_trades_list)} cerrados)
+✅ <b>Trades Cerrados:</b> {today_metrics.get('total_trades', 0)}
+💰 <b>P&L Total:</b> ${today_metrics.get('total_pnl', 0):.2f}
+📊 <b>Win Rate:</b> {today_metrics.get('win_rate', 0):.1f}%
+"""
+            
+            # Muestra trades cerrados (ejecutados y cerrados)
+            if closed_trades_list:
+                message += f"\n━━━━━━━━━━━━━━━━━━━━\n✅ <b>TRADES CERRADOS ({len(closed_trades_list)})</b>\n━━━━━━━━━━━━━━━━━━━━\n"
+                for i, trade in enumerate(closed_trades_list[:10], 1):  # Máximo 10 trades
+                    direction_emoji = "🟢" if trade.get("direction") == "BUY" else "🔴"
+                    pnl_trade = trade.get("pnl", 0) or 0
+                    pnl_trade_emoji = "✅" if pnl_trade > 0 else "❌" if pnl_trade < 0 else "➖"
+                    
+                    # Formatea fecha de entrada y salida
+                    entry_time = trade.get("entry_time", "")
+                    exit_time = trade.get("exit_time", "")
+                    if entry_time:
+                        try:
+                            if isinstance(entry_time, str):
+                                entry_dt = datetime.fromisoformat(entry_time.replace('Z', '+00:00'))
+                            else:
+                                entry_dt = entry_time
+                            entry_str = entry_dt.strftime('%H:%M')
+                        except:
+                            entry_str = str(entry_time)[:5] if len(str(entry_time)) > 5 else str(entry_time)
+                    else:
+                        entry_str = "N/A"
+                    
+                    if exit_time:
+                        try:
+                            if isinstance(exit_time, str):
+                                exit_dt = datetime.fromisoformat(exit_time.replace('Z', '+00:00'))
+                            else:
+                                exit_dt = exit_time
+                            exit_str = exit_dt.strftime('%H:%M')
+                        except:
+                            exit_str = str(exit_time)[:5] if len(str(exit_time)) > 5 else str(exit_time)
+                    else:
+                        exit_str = "N/A"
+                    
+                    message += f"\n{i}. {direction_emoji} <b>{trade.get('direction', 'N/A')}</b> | Ticket: {trade.get('ticket', 'N/A')}\n"
+                    message += f"   ⏰ {entry_str} → {exit_str} | {pnl_trade_emoji} P&L: ${pnl_trade:.2f}\n"
+                    message += f"   📊 Entrada: ${trade.get('entry_price', 0):.2f} | Salida: ${trade.get('exit_price', 0):.2f} | RR: 1:{trade.get('risk_reward', 0):.2f}\n"
+            
+            # Muestra trades abiertos (ejecutados pero aún abiertos)
+            if open_trades_list:
+                message += f"\n━━━━━━━━━━━━━━━━━━━━\n⏳ <b>TRADES ABIERTOS ({len(open_trades_list)})</b>\n━━━━━━━━━━━━━━━━━━━━\n"
+                for i, trade in enumerate(open_trades_list[:10], 1):  # Máximo 10 trades
+                    direction_emoji = "🟢" if trade.get("direction") == "BUY" else "🔴"
+                    
+                    entry_time = trade.get("entry_time", "")
+                    if entry_time:
+                        try:
+                            if isinstance(entry_time, str):
+                                entry_dt = datetime.fromisoformat(entry_time.replace('Z', '+00:00'))
+                            else:
+                                entry_dt = entry_time
+                            entry_str = entry_dt.strftime('%H:%M')
+                        except:
+                            entry_str = str(entry_time)[:5] if len(str(entry_time)) > 5 else str(entry_time)
+                    else:
+                        entry_str = "N/A"
+                    
+                    message += f"\n{i}. {direction_emoji} <b>{trade.get('direction', 'N/A')}</b> | Ticket: {trade.get('ticket', 'N/A')}\n"
+                    message += f"   ⏰ Entrada: {entry_str} | 📊 Entrada: ${trade.get('entry_price', 0):.2f} | SL: ${trade.get('stop_loss', 0):.2f} | TP: ${trade.get('take_profit', 0):.2f}\n"
+                    message += f"   📈 RR: 1:{trade.get('risk_reward', 0):.2f}\n"
+            
+            # Si no hay trades, muestra mensaje
+            if not closed_trades_list and not open_trades_list:
+                message += "\nℹ️ No hay trades ejecutados hoy aún\n"
+            
+            # Agrega posiciones abiertas (si hay)
+            if open_positions:
+                message += f"\n━━━━━━━━━━━━━━━━━━━━\n📦 <b>POSICIONES ABIERTAS ({len(open_positions)})</b>\n━━━━━━━━━━━━━━━━━━━━\n"
+                for i, pos in enumerate(open_positions[:5], 1):  # Máximo 5 posiciones
+                    direction_emoji = "🟢" if pos.get("direction") == "BUY" else "🔴"
+                    unrealized_pnl = pos.get("unrealized_pnl", 0)
+                    pnl_emoji = "💰" if unrealized_pnl > 0 else "📉" if unrealized_pnl < 0 else "➖"
+                    
+                    message += f"\n{i}. {direction_emoji} <b>{pos.get('direction', 'N/A')}</b> | Ticket: {pos.get('ticket', 'N/A')}\n"
+                    message += f"   {pnl_emoji} P&L No Realizado: ${unrealized_pnl:.2f}\n"
+                    message += f"   📊 Entrada: ${pos.get('entry_price', 0):.2f} | Actual: ${pos.get('current_price', 0):.2f} | SL: ${pos.get('stop_loss', 0):.2f} | TP: ${pos.get('take_profit', 0):.2f}\n"
+            
+            return self.send_message(message)
+        except Exception as e:
+            if logger:
+                logger.error(f"Error al generar reporte horario: {e}", exc_info=True)
+            return False
+    
     def send_bot_started(self, account_info: Dict = None) -> bool:
         """
         Envía notificación cuando el bot se inicia.

@@ -1542,7 +1542,32 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                 update_open_positions()
                 last_signal_time = current_time
             
-            # Envía reporte de operaciones cada 12 horas
+            # Envía reporte de operaciones cada hora (con trades ejecutados)
+            last_hourly_report = getattr(run_auto_trading_loop, 'last_hourly_report', None)
+            if db and telegram and (last_hourly_report is None or 
+                (current_time - last_hourly_report).total_seconds() >= 3600):  # Cada 1 hora (3600 segundos)
+                
+                try:
+                    # Obtener posiciones actuales desde MT5
+                    current_positions = update_open_positions(MT5_SYMBOL)
+                    
+                    # Envía reporte horario con trades ejecutados
+                    success = telegram.send_hourly_report(
+                        db, 
+                        include_open_positions=True,
+                        current_positions=current_positions
+                    )
+                    if success:
+                        print(f"✅ Reporte horario enviado a Telegram", flush=True)
+                    else:
+                        print(f"⚠️ No se pudo enviar reporte horario", flush=True)
+                    run_auto_trading_loop.last_hourly_report = current_time
+                except Exception as e:
+                    print(f"❌ Error al enviar reporte horario: {e}", flush=True)
+                    if logger:
+                        logger.warning(f"Error al enviar reporte horario: {e}")
+            
+            # Envía reporte de operaciones cada 12 horas (reporte completo)
             last_report_time = getattr(run_auto_trading_loop, 'last_report_time', None)
             if db and telegram and (last_report_time is None or 
                 (current_time - last_report_time).total_seconds() >= 43200):  # Cada 12 horas (43200 segundos)
