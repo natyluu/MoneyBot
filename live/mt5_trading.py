@@ -162,7 +162,7 @@ import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
 import time
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, UTC
 from typing import Dict, List, Optional
 
 # Importar News Risk Gate
@@ -1281,7 +1281,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             sys.stdout.flush()
                         else:
                             # Filtro de horario: verificar si está en horario permitido
-                            current_time_utc = datetime.utcnow()
+                            current_time_utc = datetime.now(UTC)
                             if not is_trading_hour_allowed(current_time_utc):
                                 if logger:
                                     logger.info(f"Trading bloqueado: fuera de horario permitido (UTC {current_time_utc.hour}:00)")
@@ -1321,7 +1321,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                 if NEWS_GATE_AVAILABLE:
                                     try:
                                         news_provider = get_news_provider()
-                                        today_utc = datetime.utcnow().date()
+                                        today_utc = datetime.now(UTC).date()
                                         events_today = news_provider.get_events_for_day(today_utc)
                                         current_spread = get_current_spread(MT5_SYMBOL)
                                         atr_ratio = get_atr_ratio(MT5_SYMBOL)
@@ -1678,7 +1678,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                         logger.warning(f"Error al enviar reporte de operaciones: {e}")
             
             # Actualizar pivots al cambio de día UTC
-            current_date_utc = datetime.utcnow().date()
+            current_date_utc = datetime.now(UTC).date()
             if pivots_manager:
                 if pivots_manager.last_update_date != current_date_utc:
                     try:

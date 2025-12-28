@@ -5,7 +5,7 @@ Calcula y gestiona pivots diarios usando High/Low/Close del día anterior.
 Los pivots se actualizan una vez por día al cambio de día UTC.
 """
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, UTC
 from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 
@@ -115,7 +115,7 @@ class DailyPivotsManager:
         
         try:
             # Obtiene datos del día anterior (D1)
-            today_utc = datetime.utcnow().date()
+            today_utc = datetime.now(UTC).date()
             yesterday_utc = today_utc - timedelta(days=1)
             
             # Obtiene velas diarias (D1)
@@ -193,7 +193,7 @@ class DailyPivotsManager:
             high=high,
             low=low,
             close=close,
-            calculated_at=datetime.utcnow()
+            calculated_at=datetime.now(UTC)
         )
         
         # Guarda en cache

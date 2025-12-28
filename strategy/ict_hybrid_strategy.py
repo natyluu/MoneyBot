@@ -844,6 +844,8 @@ class ICTHybridStrategy(BaseStrategy):
         print(f"      SL: ${stop_loss:.2f}")
         print(f"      TP1: ${take_profit_1:.2f}, TP2: ${take_profit_2:.2f}, TP Final: ${take_profit_final:.2f}")
         print(f"      Risk:Reward: 1:{risk_reward:.2f}")
+        if pivot_info:
+            print(f"      🎯 Confluencia con Pivot {pivot_info['level']} (score: +{pivot_score:.1f})")
         
         return signal
     

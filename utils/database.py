@@ -7,7 +7,7 @@ Permite análisis histórico y mejora continua.
 
 import sqlite3
 import os
-from datetime import datetime, date
+from datetime import datetime, date, UTC
 from typing import Dict, List, Optional
 from pathlib import Path
 import json
@@ -465,7 +465,7 @@ class TradingDatabase:
                 cooldown_until_utc, spread, atr_ratio, daily_dd_pct
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            datetime.utcnow(),
+            datetime.now(UTC),
             symbol,
             news_mode,
             1 if blocked else 0,
