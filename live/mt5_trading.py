@@ -1059,7 +1059,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                     try:
                         # Obtener eventos del día
                         news_provider = get_news_provider()
-                        today_utc = datetime.utcnow().date()
+                        today_utc = datetime.now(UTC).date()
                         events_today = news_provider.get_events_for_day(today_utc)
                         
                         # Calcular métricas de mercado
@@ -1092,7 +1092,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                         
                         # Verificar si se deben bloquear nuevas entradas
                         blocked_by_news, news_mode, news_reasons, cooldown_until = should_block_new_entries(
-                            now_utc=datetime.utcnow(),
+                            now_utc=datetime.now(UTC),
                             symbol=MT5_SYMBOL,
                             events_today=events_today,
                             spread=current_spread,

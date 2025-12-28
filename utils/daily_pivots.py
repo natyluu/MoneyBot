@@ -152,7 +152,7 @@ class DailyPivotsManager:
         Returns:
             DailyPivots actualizado o None si hay error
         """
-        today_utc = datetime.utcnow().date()
+        today_utc = datetime.now(UTC).date()
         
         # Verifica si necesita actualizar
         if not force_update:
