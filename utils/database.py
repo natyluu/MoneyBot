@@ -152,6 +152,28 @@ class TradingDatabase:
             )
         """)
         
+        # Tabla de pivots diarios (Fibonacci)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS daily_pivots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date DATE NOT NULL,
+                symbol TEXT NOT NULL,
+                pivot REAL NOT NULL,
+                r1 REAL NOT NULL,
+                r2 REAL NOT NULL,
+                r3 REAL NOT NULL,
+                s1 REAL NOT NULL,
+                s2 REAL NOT NULL,
+                s3 REAL NOT NULL,
+                high REAL NOT NULL,
+                low REAL NOT NULL,
+                close REAL NOT NULL,
+                calculated_at DATETIME NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(date, symbol)
+            )
+        """)
+        
         self.conn.commit()
     
     def save_signal(self, signal: Dict, status: str = "GENERATED", rejection_reason: str = None) -> int:

@@ -33,6 +33,15 @@ from strategy.ict_utils import (
 )
 from utils.indicators import calculate_rsi
 
+# Importar módulo de pivots (opcional, no bloquea si no está disponible)
+try:
+    from utils.daily_pivots import DailyPivotsManager, DailyPivots
+    PIVOTS_AVAILABLE = True
+except ImportError:
+    PIVOTS_AVAILABLE = False
+    DailyPivotsManager = None
+    DailyPivots = None
+
 
 @dataclass
 class MultiTimeframeContext:
@@ -646,19 +655,6 @@ class ICTHybridStrategy(BaseStrategy):
         if len(missing_confirmations) > 0:
             print(f"   ⚠️ Faltan: {', '.join(missing_confirmations[:3])}")
         
-        # Sistema de peso: calcular score total de confirmaciones
-        total_score = sum(CONFIRMATION_WEIGHTS.get(c, 1.0) for c in confirmations)
-        min_score_required = 4.0  # Requiere al menos 2 confirmaciones fuertes (2.0 + 2.0)
-        
-        # Verifica score mínimo (equivalente a 2 confirmaciones fuertes o combinación equivalente)
-        if total_score < min_score_required:
-            print(f"   ❌ Score insuficiente: {total_score:.1f}/{min_score_required:.1f} (confirmaciones: {len(confirmations)})")
-            print(f"      Confirmaciones: {', '.join(confirmations) if confirmations else 'Ninguna'}")
-            return None
-        
-        print(f"   ✓ Score de confirmaciones: {total_score:.1f}/{min_score_required:.1f}")
-        print(f"      Confirmaciones ({len(confirmations)}): {', '.join(confirmations)}")
-        
         # Determina dirección basándose en el contexto
         direction = 'BULLISH'  # Por defecto
         if contexto_global.d1_trend == TrendDirection.BEARISH:
@@ -669,6 +665,79 @@ class ICTHybridStrategy(BaseStrategy):
         
         # Determina tipo de operación
         operation_type = 'BUY' if direction == 'BULLISH' else 'SELL'
+        
+        # 6. Confluencia con Pivots Diarios (confirmación adicional)
+        pivot_score = 0.0
+        pivot_justification = None
+        pivot_level = None
+        pivot_distance = 0.0
+        
+        if PIVOTS_AVAILABLE and contexto_global.pivots_manager:
+            try:
+                # Obtiene pivots (se actualizan automáticamente si es necesario)
+                # Usa el símbolo del contexto o por defecto XAUUSD
+                symbol = getattr(contexto_global, 'symbol', 'XAUUSD')
+                pivots = contexto_global.pivots_manager.get_pivots(symbol=symbol)
+                
+                if pivots:
+                    # Verifica confluencia con pivots
+                    has_confluence, level, distance_pct = contexto_global.pivots_manager.check_pivot_confluence(
+                        price=current_price,
+                        direction=operation_type,
+                        pivots=pivots,
+                        tolerance_pct=0.15  # 0.15% de tolerancia
+                    )
+                    
+                    if has_confluence:
+                        # Confluencia encontrada: +1.0 al score si es nivel fuerte (S1/R1 o PP)
+                        # +0.5 si es nivel débil (S2/R2, S3/R3)
+                        if level in ['S1', 'R1', 'PP']:
+                            pivot_score = 1.0
+                            pivot_justification = f"Confluencia con {level} (distancia: {distance_pct:.2f}%)"
+                        else:
+                            pivot_score = 0.5
+                            pivot_justification = f"Confluencia con {level} (distancia: {distance_pct:.2f}%)"
+                        
+                        confirmations.append('PIVOT_CONFLUENCE')
+                        justifications.append(pivot_justification)
+                        pivot_level = level
+                        pivot_distance = distance_pct
+                        
+                        print(f"   ✅ Confluencia con pivot {level} detectada (distancia: {distance_pct:.2f}%)")
+                    else:
+                        # Verifica si está cerca pero no en confluencia (filtro direccional)
+                        nearest_level, nearest_price, nearest_distance = contexto_global.pivots_manager.get_nearest_level(
+                            current_price, pivots
+                        )
+                        
+                        if nearest_distance <= 0.3:  # Muy cerca (0.3%)
+                            # Filtro direccional: advierte si está cerca del nivel opuesto
+                            if operation_type == 'BUY' and nearest_level in ['R1', 'R2', 'R3']:
+                                print(f"   ⚠️ Precio cerca de {nearest_level} (resistencia) - no ideal para BUY")
+                            elif operation_type == 'SELL' and nearest_level in ['S1', 'S2', 'S3']:
+                                print(f"   ⚠️ Precio cerca de {nearest_level} (soporte) - no ideal para SELL")
+            except Exception as e:
+                # Si hay error, continúa sin pivots (no bloquea la señal)
+                if logger:
+                    logger.warning(f"Error al verificar pivots: {e}")
+        
+        # Sistema de peso: calcular score total de confirmaciones
+        total_score = sum(CONFIRMATION_WEIGHTS.get(c, 1.0) for c in confirmations)
+        
+        # Agregar score de pivots si hay confluencia
+        if pivot_score > 0:
+            total_score += pivot_score
+        
+        min_score_required = 4.0  # Requiere al menos 2 confirmaciones fuertes (2.0 + 2.0)
+        
+        # Verifica score mínimo (equivalente a 2 confirmaciones fuertes o combinación equivalente)
+        if total_score < min_score_required:
+            print(f"   ❌ Score insuficiente: {total_score:.1f}/{min_score_required:.1f} (confirmaciones: {len(confirmations)})")
+            print(f"      Confirmaciones: {', '.join(confirmations) if confirmations else 'Ninguna'}")
+            return None
+        
+        print(f"   ✓ Score de confirmaciones: {total_score:.1f}/{min_score_required:.1f}")
+        print(f"      Confirmaciones ({len(confirmations)}): {', '.join(confirmations)}")
         
         # Calcula niveles de entrada, SL y TP
         entry_price = current_price
@@ -872,7 +941,7 @@ class ICTHybridStrategy(BaseStrategy):
                 }
             
             # Convierte TradingSignal a diccionario
-            return {
+            signal_dict = {
                 "signal": signal.operation_type,
                 "entry_price": signal.entry_price,
                 "stop_loss": signal.stop_loss,
@@ -892,6 +961,12 @@ class ICTHybridStrategy(BaseStrategy):
                     for zone in signal.active_zones
                 ]
             }
+            
+            # Agregar información de pivots si hay confluencia
+            if signal.chart_data and "pivot_confluence" in signal.chart_data:
+                signal_dict["pivot_confluence"] = signal.chart_data["pivot_confluence"]
+            
+            return signal_dict
         
         except Exception as e:
             print(f"⚠️ Error al generar señal: {e}")

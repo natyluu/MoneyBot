@@ -392,6 +392,44 @@ class TelegramAlerts:
         
         return self.send_message(message)
     
+    def send_pivot_confluence(self, symbol: str, direction: str, level: str, 
+                             price: float, pivot_price: float, distance_pct: float) -> bool:
+        """
+        Envía notificación de confluencia con pivot.
+        
+        Args:
+            symbol: Símbolo
+            direction: BUY o SELL
+            level: Nivel de pivot (S1, R1, etc.)
+            price: Precio actual
+            pivot_price: Precio del nivel de pivot
+            distance_pct: Distancia porcentual
+        """
+        direction_emoji = "🟢" if direction == "BUY" else "🔴"
+        level_type = "Soporte" if level.startswith('S') else "Resistencia" if level.startswith('R') else "Pivot"
+        
+        # Determinar score agregado
+        if level in ['S1', 'R1', 'PP']:
+            score_added = "+1.0"
+        else:
+            score_added = "+0.5"
+        
+        message = f"""
+🎯 <b>CONFLUENCIA CON PIVOT DIARIO</b>
+
+{direction_emoji} <b>Dirección:</b> {direction}
+📊 <b>Símbolo:</b> {symbol}
+🎯 <b>Nivel:</b> {level} ({level_type})
+💰 <b>Precio Actual:</b> ${price:.2f}
+📈 <b>Precio Pivot:</b> ${pivot_price:.2f}
+📏 <b>Distancia:</b> {distance_pct:.2f}%
+⭐ <b>Score Agregado:</b> {score_added}
+
+⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        return self.send_message(message)
+    
     def send_operations_report(self, db, include_open_positions: bool = True, current_positions: list = None) -> bool:
         """
         Envía reporte detallado de operaciones.

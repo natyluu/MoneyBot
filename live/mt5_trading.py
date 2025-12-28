@@ -196,6 +196,14 @@ except ImportError:
 try:
     from utils.logger import logger
     from utils.database import TradingDatabase
+    
+    # Importar gestor de pivots (opcional)
+    try:
+        from utils.daily_pivots import DailyPivotsManager
+        PIVOTS_AVAILABLE = True
+    except ImportError:
+        DailyPivotsManager = None
+        PIVOTS_AVAILABLE = False
     from live.position_manager import PositionManager
     from live.trade_analyzer import TradeAnalyzer
     from live.telegram_alerts import TelegramAlerts
@@ -891,6 +899,21 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
             if logger:
                 logger.warning(f"No se pudo inicializar analizador de trades: {e}")
     
+    # Inicializar gestor de pivots diarios
+    pivots_manager = None
+    if PIVOTS_AVAILABLE and DailyPivotsManager and db:
+        try:
+            pivots_manager = DailyPivotsManager(db=db)
+            # Actualizar pivots al inicio
+            pivots_manager.update_pivots(MT5_SYMBOL, force_update=True)
+            if logger:
+                logger.info("✅ Gestor de pivots diarios inicializado")
+            print(f"✅ Gestor de pivots inicializado para {MT5_SYMBOL}", flush=True)
+        except Exception as e:
+            print(f"⚠️ No se pudo inicializar gestor de pivots: {e}")
+            if logger:
+                logger.warning(f"No se pudo inicializar gestor de pivots: {e}")
+    
     # Inicializar alertas de Telegram
     telegram = None
     if TelegramAlerts and config_module:
@@ -972,6 +995,11 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
     
     # 2. Inicializa la estrategia
     strategy = ICTHybridStrategy()
+    
+    # Asignar pivots_manager al contexto de la estrategia
+    if pivots_manager:
+        strategy.context.pivots_manager = pivots_manager
+        strategy.context.symbol = MT5_SYMBOL  # Agregar símbolo al contexto
     
     # 3. Variables de control
     last_analysis_time = None
@@ -1184,6 +1212,11 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                     time.sleep(update_interval)
                     continue
                 
+                # Asegurar que pivots_manager esté en el contexto antes de generar señal
+                if pivots_manager:
+                    strategy.context.pivots_manager = pivots_manager
+                    strategy.context.symbol = MT5_SYMBOL
+                
                 # Genera señal usando la estrategia
                 signal = strategy.generate_signal(context)
                 
@@ -1193,6 +1226,21 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                 
                 # Guarda la señal en la base de datos (aceptada o rechazada)
                 if signal:
+                    # Verificar si hay confluencia con pivots para logging
+                    pivot_info = signal.get("pivot_confluence")
+                    if pivot_info and telegram:
+                        try:
+                            telegram.send_pivot_confluence(
+                                symbol=MT5_SYMBOL,
+                                direction=signal.get("signal", ""),
+                                level=pivot_info.get("level", ""),
+                                price=signal.get("entry_price", 0),
+                                pivot_price=pivot_info.get("pivot_price", 0),
+                                distance_pct=pivot_info.get("distance_pct", 0)
+                            )
+                        except Exception as e:
+                            if logger:
+                                logger.warning(f"Error al enviar notificación de pivot: {e}")
                     signal_id = None
                     if db:
                         try:
@@ -1628,6 +1676,19 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                         logger.warning(f"Error al enviar reporte semanal: {e}")
                     if logger:
                         logger.warning(f"Error al enviar reporte de operaciones: {e}")
+            
+            # Actualizar pivots al cambio de día UTC
+            current_date_utc = datetime.utcnow().date()
+            if pivots_manager:
+                if pivots_manager.last_update_date != current_date_utc:
+                    try:
+                        pivots_manager.update_pivots(MT5_SYMBOL, force_update=True)
+                        if logger:
+                            logger.info(f"✅ Pivots actualizados para nuevo día UTC: {current_date_utc}")
+                        print(f"✅ Pivots actualizados para nuevo día UTC: {current_date_utc}", flush=True)
+                    except Exception as e:
+                        if logger:
+                            logger.warning(f"Error al actualizar pivots: {e}")
             
             # Muestra métricas de performance cada 5 minutos
             if db and (last_status_time is None or 
