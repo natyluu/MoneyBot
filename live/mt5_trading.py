@@ -1372,13 +1372,34 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                             if signal.get("justifications"):
                                                 print(f"   Razones: {', '.join(signal['justifications'][:2])}")
                                             last_signal_time = current_time
+                                        else:
+                                            # ERROR: Señal aceptada pero NO se ejecutó la orden
+                                            error_msg = f"❌ ERROR CRÍTICO: Señal aceptada (ID={signal_id}) pero NO se ejecutó la orden"
+                                            print(f"\n{error_msg}", flush=True)
+                                            print(f"   Señal: {signal['signal']}")
+                                            print(f"   Entrada: ${signal['entry_price']:.2f}")
+                                            print(f"   Posible causa: Error al enviar orden a MT5", flush=True)
+                                            
+                                            if logger:
+                                                logger.error(f"{error_msg} | Signal ID: {signal_id} | RR: {signal['risk_reward']:.2f}")
+                                            
+                                            # Marcar en base de datos
+                                            if db:
+                                                try:
+                                                    db.conn.execute(
+                                                        "UPDATE signals SET rejection_reason = ? WHERE id = ?",
+                                                        ("Error al ejecutar orden en MT5", signal_id)
+                                                    )
+                                                    db.conn.commit()
+                                                except Exception as e:
+                                                    if logger:
+                                                        logger.warning(f"Error al actualizar señal en BD: {e}")
                     else:
-                        # Señal HOLD o sin dirección
-                        if db:
-                            try:
-                                db.save_signal(signal, status="REJECTED", rejection_reason="No hay señal clara")
-                            except:
-                                pass
+                        # Señal HOLD o sin dirección - NO guardar (no es una señal real de trading)
+                        # Esto reduce el ruido en la base de datos
+                        if logger:
+                            logger.debug("Señal HOLD detectada - no se guarda en base de datos")
+                        continue  # Saltar y no guardar señales HOLD
                 else:
                     # No se generó señal
                     if logger:
