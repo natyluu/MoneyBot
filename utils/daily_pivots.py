@@ -227,7 +227,7 @@ class DailyPivotsManager:
         # Intenta obtener de cache primero
         if symbol in self.pivots_cache:
             cached = self.pivots_cache[symbol]
-            today_utc = datetime.utcnow().date()
+            today_utc = datetime.now(UTC).date()
             
             # Si son de hoy, devuelve cache
             if cached.date == today_utc:

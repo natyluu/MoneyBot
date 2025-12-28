@@ -1348,7 +1348,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                         }
                                         
                                         blocked_check, _, reasons_check, _ = should_block_new_entries(
-                                            now_utc=datetime.utcnow(),
+                                            now_utc=datetime.now(UTC),
                                             symbol=MT5_SYMBOL,
                                             events_today=events_today,
                                             spread=current_spread,
