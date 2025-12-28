@@ -1105,12 +1105,21 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                         # Guardar estado en base de datos
                         if db:
                             try:
+                                # Verificar que cooldown_until sea datetime o None (no un tipo)
+                                cooldown_until_safe = None
+                                if cooldown_until is not None:
+                                    if isinstance(cooldown_until, datetime):
+                                        cooldown_until_safe = cooldown_until
+                                    else:
+                                        if logger:
+                                            logger.warning(f"cooldown_until no es datetime: {type(cooldown_until)}")
+                                
                                 db.save_bot_state(
                                     symbol=MT5_SYMBOL,
                                     news_mode=news_mode,
                                     blocked=blocked_by_news,
                                     reasons=news_reasons,
-                                    cooldown_until_utc=cooldown_until,
+                                    cooldown_until_utc=cooldown_until_safe,
                                     spread=current_spread,
                                     atr_ratio=atr_ratio,
                                     daily_dd_pct=daily_dd_pct
