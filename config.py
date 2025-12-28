@@ -106,7 +106,7 @@ MT5_SYMBOL = get_env("MT5_SYMBOL", "XAUUSD")  # Símbolo a operar (puede ser XAU
 # Configuración de riesgo para trading en vivo
 RISK_PER_TRADE = float(get_env("RISK_PER_TRADE", "0.01"))  # 1% de riesgo por operación
 MAX_CONCURRENT_TRADES = int(get_env("MAX_CONCURRENT_TRADES", "3"))  # Máximo de operaciones simultáneas
-MIN_RR = float(get_env("MIN_RR", "1.5"))  # Risk:Reward mínimo requerido (1:1.5)
+MIN_RR = float(get_env("MIN_RR", "2.0"))  # Risk:Reward mínimo requerido (1:2.0) - Aumentado para mejor calidad
 
 # Configuración de Telegram (opcional)
 TELEGRAM_BOT_TOKEN = get_env("TELEGRAM_BOT_TOKEN", "")

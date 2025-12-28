@@ -285,3 +285,8 @@ def get_news_provider() -> SafeNewsProvider:
             if _news_provider is None:
                 _news_provider = SafeNewsProvider()
     return _news_provider
+
+
+
+
+

@@ -162,7 +162,7 @@ import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import Dict, List, Optional
 
 # Importar News Risk Gate
@@ -804,6 +804,27 @@ def update_open_positions(symbol: str = None) -> List[Dict]:
     return positions_info
 
 
+def is_trading_hour_allowed(current_time_utc: datetime) -> bool:
+    """
+    Define horas permitidas para trading.
+    Evita horas de baja liquidez o alta volatilidad.
+    
+    Args:
+        current_time_utc: Tiempo actual en UTC
+        
+    Returns:
+        True si está en horario permitido, False si está bloqueado
+    """
+    hour = current_time_utc.hour
+    
+    # Horas a evitar (ajustar según tu broker y símbolo):
+    # - 0-2 UTC: Baja liquidez (mercados asiáticos cerrando)
+    # - 21-23 UTC: Cierre de mercados europeos/americanos
+    blocked_hours = [0, 1, 2, 21, 22, 23]
+    
+    return hour not in blocked_hours
+
+
 def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 60):
     """
     Loop principal de trading automático.
@@ -1211,6 +1232,20 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             print(f"⚠️ Señal rechazada: RR {signal['risk_reward']:.2f} < mínimo {MIN_RR}", flush=True)
                             sys.stdout.flush()
                         else:
+                            # Filtro de horario: verificar si está en horario permitido
+                            current_time_utc = datetime.utcnow()
+                            if not is_trading_hour_allowed(current_time_utc):
+                                if logger:
+                                    logger.info(f"Trading bloqueado: fuera de horario permitido (UTC {current_time_utc.hour}:00)")
+                                print(f"⚠️ Trading bloqueado: fuera de horario permitido (UTC {current_time_utc.hour}:00)", flush=True)
+                                if db:
+                                    try:
+                                        db.save_signal(signal, status="REJECTED", rejection_reason=f"Fuera de horario permitido (UTC {current_time_utc.hour}:00)")
+                                    except:
+                                        pass
+                                sys.stdout.flush()
+                                continue
+                            
                             # Verifica que no haya demasiadas posiciones abiertas
                             positions = update_open_positions()
                             if len(positions) >= MAX_CONCURRENT_TRADES:

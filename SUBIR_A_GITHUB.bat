@@ -102,3 +102,8 @@ echo.
 echo Proximo paso: En el VPS, ejecuta ACTUALIZAR_BOT_VPS.bat
 echo.
 pause
+
+
+
+
+

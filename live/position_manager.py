@@ -49,6 +49,21 @@ class PositionManager:
         if positions is None:
             return actions
         
+        logger.info(f"📊 Checking {len(positions)} positions for {symbol or 'all symbols'}")
+        
+        # Obtiene tick actual para verificar precios
+        if symbol:
+            tick = mt5.symbol_info_tick(symbol)
+            if tick:
+                current_bid = tick.bid
+                current_ask = tick.ask
+            else:
+                current_bid = None
+                current_ask = None
+        else:
+            current_bid = None
+            current_ask = None
+        
         for pos in positions:
             ticket = pos.ticket
             current_price = pos.price_current
@@ -57,6 +72,27 @@ class PositionManager:
             take_profit = pos.tp
             profit = pos.profit
             volume = pos.volume
+            
+            # Logging detallado para investigar trades no cerrados
+            logger.info(f"   Position {ticket}: Price={current_price:.2f}, Entry={entry_price:.2f}, SL={stop_loss:.2f}, TP={take_profit:.2f}, P&L=${profit:.2f}")
+            
+            # Verificar si debería haberse cerrado
+            if pos.type == mt5.ORDER_TYPE_BUY:
+                if stop_loss > 0 and current_price <= stop_loss:
+                    logger.warning(f"   ⚠️ BUY {ticket} SHOULD HAVE HIT SL! Current={current_price:.2f}, SL={stop_loss:.2f}, Diff={current_price-stop_loss:.2f}")
+                if take_profit > 0 and current_price >= take_profit:
+                    logger.warning(f"   ⚠️ BUY {ticket} SHOULD HAVE HIT TP! Current={current_price:.2f}, TP={take_profit:.2f}, Diff={current_price-take_profit:.2f}")
+            elif pos.type == mt5.ORDER_TYPE_SELL:
+                if stop_loss > 0 and current_price >= stop_loss:
+                    logger.warning(f"   ⚠️ SELL {ticket} SHOULD HAVE HIT SL! Current={current_price:.2f}, SL={stop_loss:.2f}, Diff={current_price-stop_loss:.2f}")
+                if take_profit > 0 and current_price <= take_profit:
+                    logger.warning(f"   ⚠️ SELL {ticket} SHOULD HAVE HIT TP! Current={current_price:.2f}, TP={take_profit:.2f}, Diff={current_price-take_profit:.2f}")
+            
+            # Verificar si SL/TP están configurados
+            if stop_loss == 0:
+                logger.warning(f"   ⚠️ Position {ticket} has NO STOP LOSS configured!")
+            if take_profit == 0:
+                logger.warning(f"   ⚠️ Position {ticket} has NO TAKE PROFIT configured!")
             
             # Obtiene información de gestión de esta posición
             if ticket not in self.managed_positions:

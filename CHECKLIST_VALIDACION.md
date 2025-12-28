@@ -79,3 +79,8 @@ python3 -c "from news.provider import get_news_provider; from datetime import da
 - El gate NO cierra trades abiertos, solo previene nuevas entradas
 - La gestión de posiciones (SL a BE, cierres parciales) continúa funcionando
 
+
+
+
+
+

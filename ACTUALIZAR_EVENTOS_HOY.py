@@ -173,3 +173,8 @@ if __name__ == "__main__":
     else:
         print()
         print("❌ Error al actualizar. Intenta de nuevo en unos segundos.")
+
+
+
+
+

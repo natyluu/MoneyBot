@@ -184,3 +184,8 @@ echo   3. O usa el script: ACTUALIZAR_BOT_VPS.bat
 echo.
 pause
 
+
+
+
+
+

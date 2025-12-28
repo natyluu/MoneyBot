@@ -475,6 +475,15 @@ class ICTHybridStrategy(BaseStrategy):
         current_price = last_candle['close']
         current_index = len(df) - 1
         
+        # Sistema de peso por confirmación (prioriza confirmaciones más importantes)
+        CONFIRMATION_WEIGHTS = {
+            'SWEEP': 2.0,              # Más importante - barrida de liquidez
+            'MITIGATION': 2.0,         # Más importante - mitigación de OB/FVG
+            'BOS_CHOCH': 1.5,          # Importante - ruptura de estructura
+            'INSTITUTIONAL_CANDLE': 1.0,  # Normal - vela institucional
+            'RSI_DIVERGENCE': 0.5      # Menos importante - divergencia (opcional)
+        }
+        
         # Verifica confirmaciones
         confirmations = []
         justifications = []
@@ -491,29 +500,33 @@ class ICTHybridStrategy(BaseStrategy):
         mitigated_block = None
         
         # Verifica si algún OB o FVG fue mitigado recientemente
+        # Ventana más amplia (10 velas) con tolerancia para mejor detección
+        lookback_window = 10
+        tolerance = 0.001  # 0.1% de tolerancia
+        
         for ob in obs:
-            if ob.end_index >= current_index - 5:
-                # Verifica si fue mitigado
+            if ob.end_index >= current_index - lookback_window:
+                # Verifica si fue mitigado con tolerancia
                 for i in range(ob.end_index + 1, current_index + 1):
                     candle = df.iloc[i]
-                    if ob.direction == 'BULLISH' and candle['low'] <= ob.end_price:
+                    if ob.direction == 'BULLISH' and candle['low'] <= ob.end_price * (1 + tolerance):
                         has_mitigation = True
                         mitigated_block = ob
                         break
-                    elif ob.direction == 'BEARISH' and candle['high'] >= ob.start_price:
+                    elif ob.direction == 'BEARISH' and candle['high'] >= ob.start_price * (1 - tolerance):
                         has_mitigation = True
                         mitigated_block = ob
                         break
         
         for fvg in fvgs:
-            if fvg.end_index >= current_index - 5:
+            if fvg.end_index >= current_index - lookback_window:
                 for i in range(fvg.end_index + 1, current_index + 1):
                     candle = df.iloc[i]
-                    if fvg.direction == 'BULLISH' and candle['low'] <= fvg.end_price:
+                    if fvg.direction == 'BULLISH' and candle['low'] <= fvg.end_price * (1 + tolerance):
                         has_mitigation = True
                         mitigated_block = fvg
                         break
-                    elif fvg.direction == 'BEARISH' and candle['high'] >= fvg.start_price:
+                    elif fvg.direction == 'BEARISH' and candle['high'] >= fvg.start_price * (1 - tolerance):
                         has_mitigation = True
                         mitigated_block = fvg
                         break
@@ -542,10 +555,19 @@ class ICTHybridStrategy(BaseStrategy):
         avg_volume = df['volume'].tail(20).mean()
         volume_ratio = last_candle['volume'] / avg_volume if avg_volume > 0 else 0
         
-        has_institutional_candle = body_ratio > 0.7 and volume_ratio > 1.5
+        # Tamaño absoluto de la vela (porcentaje del precio)
+        candle_size_pct = candle_range / current_price * 100 if current_price > 0 else 0
+        
+        # Criterios mejorados y más flexibles para vela institucional
+        has_institutional_candle = (
+            (body_ratio > 0.6 and volume_ratio > 1.3) or  # Cuerpo grande + volumen
+            (body_ratio > 0.5 and volume_ratio > 2.0) or  # Cuerpo medio + volumen muy alto
+            (body_ratio > 0.8 and volume_ratio > 1.0)     # Cuerpo muy grande + volumen normal
+        ) and candle_size_pct > 0.15  # Vela debe ser al menos 0.15% del precio
+        
         if has_institutional_candle:
             confirmations.append('INSTITUTIONAL_CANDLE')
-            justifications.append(f"Vela institucional detectada (body: {body_ratio:.2%}, volumen: {volume_ratio:.2f}x)")
+            justifications.append(f"Vela institucional detectada (body: {body_ratio:.2%}, volumen: {volume_ratio:.2f}x, tamaño: {candle_size_pct:.3f}%)")
         
         # 5. Divergencia RSI (opcional)
         has_rsi_divergence = False
@@ -624,13 +646,18 @@ class ICTHybridStrategy(BaseStrategy):
         if len(missing_confirmations) > 0:
             print(f"   ⚠️ Faltan: {', '.join(missing_confirmations[:3])}")
         
-        # Verifica si se cumple al menos 3 confirmaciones
-        if len(confirmations) < 3:
-            print(f"   ❌ Confirmaciones insuficientes: {len(confirmations)}/3 (se requiere al menos 3)")
+        # Sistema de peso: calcular score total de confirmaciones
+        total_score = sum(CONFIRMATION_WEIGHTS.get(c, 1.0) for c in confirmations)
+        min_score_required = 4.0  # Requiere al menos 2 confirmaciones fuertes (2.0 + 2.0)
+        
+        # Verifica score mínimo (equivalente a 2 confirmaciones fuertes o combinación equivalente)
+        if total_score < min_score_required:
+            print(f"   ❌ Score insuficiente: {total_score:.1f}/{min_score_required:.1f} (confirmaciones: {len(confirmations)})")
+            print(f"      Confirmaciones: {', '.join(confirmations) if confirmations else 'Ninguna'}")
             return None
         
-        print(f"   ✓ Confirmaciones cumplidas: {len(confirmations)}/3")
-        print(f"      {', '.join(confirmations)}")
+        print(f"   ✓ Score de confirmaciones: {total_score:.1f}/{min_score_required:.1f}")
+        print(f"      Confirmaciones ({len(confirmations)}): {', '.join(confirmations)}")
         
         # Determina dirección basándose en el contexto
         direction = 'BULLISH'  # Por defecto

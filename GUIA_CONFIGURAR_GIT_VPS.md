@@ -208,3 +208,8 @@ git status
 
 **Una vez configurado, podrás actualizar el bot fácilmente desde GitHub!** 🚀
 
+
+
+
+
+

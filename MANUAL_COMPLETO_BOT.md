@@ -746,3 +746,8 @@ curl https://api.telegram.org/bot<TU_TOKEN>/getUpdates
 
 ¿Tienes preguntas sobre alguna parte específica del bot? Revisa la documentación o abre un issue en GitHub.
 
+
+
+
+
+

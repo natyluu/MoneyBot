@@ -212,3 +212,8 @@ Una vez configurado, podrás:
 
 **¡Una vez configurado, la sincronización será automática!** 🚀
 
+
+
+
+
+

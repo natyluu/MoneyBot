@@ -12,3 +12,8 @@ python3 SINCRONIZAR_VPS.py
 echo ""
 echo "Presiona Enter para cerrar..."
 read
+
+
+
+
+
