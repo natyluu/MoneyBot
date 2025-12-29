@@ -459,21 +459,52 @@ class TradingDatabase:
             daily_dd_pct: Drawdown diario porcentual
         """
         cursor = self.conn.cursor()
+        
+        # Validar y convertir todos los parámetros antes de insertar
+        timestamp_utc = datetime.now(timezone.utc)
+        if not isinstance(timestamp_utc, datetime):
+            raise ValueError(f"timestamp_utc debe ser datetime, recibido: {type(timestamp_utc)}")
+        
+        # Validar cooldown_until_utc
+        cooldown_safe = None
+        if cooldown_until_utc is not None:
+            if isinstance(cooldown_until_utc, datetime):
+                cooldown_safe = cooldown_until_utc
+            else:
+                # Intentar convertir si es string o otro tipo
+                try:
+                    if isinstance(cooldown_until_utc, str):
+                        cooldown_safe = datetime.fromisoformat(cooldown_until_utc)
+                    else:
+                        raise ValueError(f"cooldown_until_utc debe ser datetime o None, recibido: {type(cooldown_until_utc)}")
+                except Exception as e:
+                    # Si no se puede convertir, usar None
+                    cooldown_safe = None
+        
+        # Validar otros parámetros
+        reasons_json = json.dumps(reasons) if reasons else None
+        blocked_int = 1 if blocked else 0
+        
+        # Validar que spread, atr_ratio, daily_dd_pct sean números o None
+        spread_safe = float(spread) if spread is not None else None
+        atr_ratio_safe = float(atr_ratio) if atr_ratio is not None else None
+        daily_dd_pct_safe = float(daily_dd_pct) if daily_dd_pct is not None else None
+        
         cursor.execute("""
             INSERT INTO bot_state (
                 timestamp_utc, symbol, news_mode, blocked, reasons,
                 cooldown_until_utc, spread, atr_ratio, daily_dd_pct
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            datetime.now(timezone.utc),
-            symbol,
-            news_mode,
-            1 if blocked else 0,
-            json.dumps(reasons) if reasons else None,
-            cooldown_until_utc,
-            spread,
-            atr_ratio,
-            daily_dd_pct
+            timestamp_utc,
+            str(symbol),
+            str(news_mode),
+            blocked_int,
+            reasons_json,
+            cooldown_safe,
+            spread_safe,
+            atr_ratio_safe,
+            daily_dd_pct_safe
         ))
         self.conn.commit()
     
