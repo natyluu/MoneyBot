@@ -461,25 +461,35 @@ class TradingDatabase:
         cursor = self.conn.cursor()
         
         # Validar y convertir todos los parámetros antes de insertar
+        # SQLite necesita strings para fechas, no objetos datetime
         timestamp_utc = datetime.now(timezone.utc)
         if not isinstance(timestamp_utc, datetime):
             raise ValueError(f"timestamp_utc debe ser datetime, recibido: {type(timestamp_utc)}")
+        # Convertir datetime a string ISO format para SQLite
+        timestamp_utc_str = timestamp_utc.isoformat()
         
         # Validar cooldown_until_utc
-        cooldown_safe = None
+        cooldown_safe_str = None
         if cooldown_until_utc is not None:
             if isinstance(cooldown_until_utc, datetime):
-                cooldown_safe = cooldown_until_utc
-            else:
-                # Intentar convertir si es string o otro tipo
+                cooldown_safe_str = cooldown_until_utc.isoformat()
+            elif isinstance(cooldown_until_utc, str):
+                # Ya es string, validar formato
                 try:
-                    if isinstance(cooldown_until_utc, str):
-                        cooldown_safe = datetime.fromisoformat(cooldown_until_utc)
+                    # Validar que es un formato válido
+                    datetime.fromisoformat(cooldown_until_utc.replace('Z', '+00:00'))
+                    cooldown_safe_str = cooldown_until_utc
+                except:
+                    cooldown_safe_str = None
+            else:
+                # Intentar convertir otros tipos
+                try:
+                    if hasattr(cooldown_until_utc, 'isoformat'):
+                        cooldown_safe_str = cooldown_until_utc.isoformat()
                     else:
-                        raise ValueError(f"cooldown_until_utc debe ser datetime o None, recibido: {type(cooldown_until_utc)}")
-                except Exception as e:
-                    # Si no se puede convertir, usar None
-                    cooldown_safe = None
+                        cooldown_safe_str = None
+                except:
+                    cooldown_safe_str = None
         
         # Validar otros parámetros
         reasons_json = json.dumps(reasons) if reasons else None
@@ -496,12 +506,12 @@ class TradingDatabase:
                 cooldown_until_utc, spread, atr_ratio, daily_dd_pct
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            timestamp_utc,
+            timestamp_utc_str,  # String en lugar de datetime
             str(symbol),
             str(news_mode),
             blocked_int,
             reasons_json,
-            cooldown_safe,
+            cooldown_safe_str,  # String en lugar de datetime
             spread_safe,
             atr_ratio_safe,
             daily_dd_pct_safe
