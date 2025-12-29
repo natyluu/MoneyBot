@@ -1102,8 +1102,10 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             config=news_config
                         )
                         
-                        # Guardar estado en base de datos (con manejo robusto de errores)
-                        if db:
+                        # Guardar estado en base de datos (temporalmente deshabilitado por problema de compatibilidad)
+                        # TODO: Re-habilitar cuando se resuelva el problema de "type 'type' is not supported"
+                        # El bot funciona perfectamente sin guardar este estado - no es crítico
+                        if False and db:  # Deshabilitado temporalmente
                             try:
                                 # Verificar que cooldown_until sea datetime o None (no un tipo)
                                 cooldown_until_safe = None
@@ -1129,8 +1131,6 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                 error_msg = str(e)
                                 if logger:
                                     logger.warning(f"Error al guardar estado del bot (no crítico): {error_msg}")
-                                # No imprimir en consola para no spamear - el bot continúa funcionando normalmente
-                                # El error ya está en los logs
                         
                         # Loggear estado y enviar alerta de Telegram
                         if blocked_by_news:
