@@ -1102,7 +1102,7 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                             config=news_config
                         )
                         
-                        # Guardar estado en base de datos
+                        # Guardar estado en base de datos (con manejo robusto de errores)
                         if db:
                             try:
                                 # Verificar que cooldown_until sea datetime o None (no un tipo)
@@ -1125,8 +1125,12 @@ def run_auto_trading_loop(analysis_interval: int = 300, update_interval: int = 6
                                     daily_dd_pct=daily_dd_pct
                                 )
                             except Exception as e:
+                                # Error al guardar estado - no crítico, solo loggear y continuar
+                                error_msg = str(e)
                                 if logger:
-                                    logger.warning(f"Error al guardar estado del bot: {e}")
+                                    logger.warning(f"Error al guardar estado del bot (no crítico): {error_msg}")
+                                # No imprimir en consola para no spamear - el bot continúa funcionando normalmente
+                                # El error ya está en los logs
                         
                         # Loggear estado y enviar alerta de Telegram
                         if blocked_by_news:
