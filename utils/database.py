@@ -549,7 +549,7 @@ class TradingDatabase:
                 COUNT(*) as total_trades
             FROM trades
             WHERE DATE(exit_time) = ? AND exit_time IS NOT NULL
-        """, (date,))
+        """, (target_date,))
         
         result = cursor.fetchone()
         
