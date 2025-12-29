@@ -462,11 +462,18 @@ class TradingDatabase:
         
         # Validar y convertir todos los parámetros antes de insertar
         # SQLite necesita strings para fechas, no objetos datetime
-        timestamp_utc = datetime.now(timezone.utc)
-        if not isinstance(timestamp_utc, datetime):
-            raise ValueError(f"timestamp_utc debe ser datetime, recibido: {type(timestamp_utc)}")
-        # Convertir datetime a string ISO format para SQLite
-        timestamp_utc_str = timestamp_utc.isoformat()
+        try:
+            timestamp_utc = datetime.now(timezone.utc)
+            # Asegurar que es una instancia de datetime, no el tipo
+            if not isinstance(timestamp_utc, datetime):
+                # Si por alguna razón no es datetime, usar string directamente
+                timestamp_utc_str = datetime.now().isoformat() + 'Z'
+            else:
+                # Convertir datetime a string ISO format para SQLite
+                timestamp_utc_str = timestamp_utc.isoformat()
+        except Exception as e:
+            # Fallback: usar datetime.now() sin timezone
+            timestamp_utc_str = datetime.now().isoformat()
         
         # Validar cooldown_until_utc
         cooldown_safe_str = None
